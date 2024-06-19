@@ -850,8 +850,8 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: 3D Cave Generation
-  metroPackageVersion: 
+  metroPackageName: 3DCaveGeneration
+  metroPackageVersion: 1.0.0.0
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
@@ -859,7 +859,7 @@ PlayerSettings:
   metroCertificateNotAfter: 0000000000000000
   metroApplicationDescription: 3D Cave Generation
   wsaImages: {}
-  metroTileShortName: 
+  metroTileShortName: 3D Cave Generation
   metroTileShowName: 0
   metroMediumTileShowName: 0
   metroLargeTileShowName: 0
