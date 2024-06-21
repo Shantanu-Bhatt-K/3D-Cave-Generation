@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using UnityEngine;
 
 public static class ImprovedNoise
@@ -26,6 +27,9 @@ public static class ImprovedNoise
     }
     public static float[,,] Perlin3D(int width,int height,int depth,float cutoff,float scale)
     {
+        Stopwatch st = new Stopwatch();
+        st.Start();
+
         float[,,] meshdata = new float[width,height,depth];
         for (int k = 0; k < depth; k++)
             for (int j = 0; j < height; j++)
@@ -36,9 +40,9 @@ public static class ImprovedNoise
                         val = 0f;
                     meshdata[i,j,k] = val;
                 }
-        
 
-        Debug.Log(meshdata);    
+        st.Stop();
+       UnityEngine.Debug.Log(string.Format("CPU 3D Perlin took {0} ms to complete", st.ElapsedMilliseconds));    
         return meshdata;
     }
 

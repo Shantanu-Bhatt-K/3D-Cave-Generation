@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using UnityEngine;
 
 public class PerlinRenderer : MonoBehaviour
@@ -6,15 +7,20 @@ public class PerlinRenderer : MonoBehaviour
     public Transform renderBase;
     public void Clear()
     {
+        Stopwatch st = new Stopwatch();
+        st.Start();
         for (int i = renderBase.childCount - 1; i >= 0; i--)
         {
             DestroyImmediate(renderBase.GetChild(i).gameObject);
         }
+        st.Stop();
+        UnityEngine.Debug.Log(string.Format("Clearing CPU 3D Perlin took {0} ms to complete", st.ElapsedMilliseconds));
     }
     public void RenderCPU3D(float[,,] meshData,Vector3 size)
     {
-        
-      for (int k=0;k<size.z;k++)
+        Stopwatch st = new Stopwatch();
+        st.Start();
+        for (int k=0;k<size.z;k++)
         {
             for(int j=0;j<size.y;j++) 
             {
@@ -28,6 +34,7 @@ public class PerlinRenderer : MonoBehaviour
 
             }
         }
-
+        st.Stop();
+        UnityEngine.Debug.Log(string.Format("Rendering CPU 3D Perlin took {0} ms to complete", st.ElapsedMilliseconds));
     }
 }
