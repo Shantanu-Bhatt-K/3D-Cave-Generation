@@ -30,7 +30,14 @@ public static class Perlin_3d_Calc
     {
         Stopwatch st = new Stopwatch();
         st.Start();
-
+        System.Random random = new System.Random(seed);
+        Vector3[] octaveOffsets=new Vector3[octaves];
+        for(int i=0; i<octaves; i++)
+        {
+            octaveOffsets[i].x = random.Next(-100000, 100000);
+            octaveOffsets[i].y = random.Next(-100000, 100000);
+            octaveOffsets[i].z = random.Next(-100000, 100000);
+        }
         float[,,] meshdata = new float[width,height,depth];
         float amplitude = 1f;
         float frequency = 1f;
@@ -42,7 +49,7 @@ public static class Perlin_3d_Calc
                 {
                     for (int i = 0; i < width; i++)
                     {
-                        float val = (float)Noise(i * scale / frequency, j * scale / frequency, k * scale / frequency);
+                        float val = (float)Noise(i / scale * frequency + octaveOffsets[l].x, j / scale * frequency + octaveOffsets[l].y, k / scale * frequency + octaveOffsets[l].z);
                         meshdata[i, j, k] += val * amplitude;
                     }
                 }
