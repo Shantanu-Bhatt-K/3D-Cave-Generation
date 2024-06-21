@@ -13,6 +13,11 @@ public class GenerateNoise : MonoBehaviour
     public int height = 100;
     public int depth = 100;
     public float scale = 0.3f;
+    public int seed;
+    public int octaves;
+    public float lacunarity;
+    public float persistance;
+    
     [Range(0f, 1f)]
     public float cutoff = 0.5f;
     
@@ -26,8 +31,8 @@ public class GenerateNoise : MonoBehaviour
             case NoiseType.CPU2D:
                 break;
             case NoiseType.CPU3D:
-                float[,,] meshData= ImprovedNoise.Perlin3D(width, height, depth,cutoff,scale);
-                gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData, new Vector3(width, height, depth));
+                float[,,] meshData= Perlin_3d_Calc.MeshData_Gen(width, height, depth,scale,seed,octaves,lacunarity,persistance);
+                gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData, new Vector3(width, height, depth),cutoff);
                 break;
             case NoiseType.CPU3D_Multi:
                 break;

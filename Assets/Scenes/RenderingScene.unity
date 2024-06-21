@@ -198,7 +198,11 @@ MonoBehaviour:
   height: 100
   depth: 100
   scale: 0.03
-  cutoff: 0.128
+  seed: 0
+  octaves: 6
+  lacunarity: 3.69
+  persistance: 0.8
+  cutoff: 0.092
 --- !u!4 &793331775
 Transform:
   m_ObjectHideFlags: 0

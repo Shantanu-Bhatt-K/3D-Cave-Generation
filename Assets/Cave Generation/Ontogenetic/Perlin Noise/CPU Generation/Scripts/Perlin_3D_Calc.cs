@@ -1,8 +1,9 @@
 using System;
 using System.Diagnostics;
+using UnityEditor.UI;
 using UnityEngine;
 
-public static class ImprovedNoise
+public static class Perlin_3d_Calc
 {
     static readonly int[] p = new int[512];
     static readonly int[] permutation = {
@@ -18,28 +19,39 @@ public static class ImprovedNoise
         222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
     };
 
-    static ImprovedNoise()
+    static Perlin_3d_Calc()
     {
         for (int i = 0; i < 256; i++)
         {
             p[256 + i] = p[i] = permutation[i];
         }
     }
-    public static float[,,] Perlin3D(int width,int height,int depth,float cutoff,float scale)
+    public static float[,,] MeshData_Gen(int width,int height,int depth,float scale,int seed,int octaves,float lacunarity,float persistance)
     {
         Stopwatch st = new Stopwatch();
         st.Start();
 
         float[,,] meshdata = new float[width,height,depth];
-        for (int k = 0; k < depth; k++)
-            for (int j = 0; j < height; j++)
-                for (int i = 0; i < width; i++)
+        float amplitude = 1f;
+        float frequency = 1f;
+        for(int l=0;l<octaves;l++)
+        {
+            for (int k = 0; k < depth; k++)
+            {
+                for (int j = 0; j < height; j++)
                 {
-                    float val = (float)Noise(i * scale, j * scale, k * scale);
-                    if (val < cutoff)
-                        val = 0f;
-                    meshdata[i,j,k] = val;
+                    for (int i = 0; i < width; i++)
+                    {
+                        float val = (float)Noise(i * scale / frequency, j * scale / frequency, k * scale / frequency);
+                        meshdata[i, j, k] += val * amplitude;
+                    }
                 }
+                   
+            }
+            amplitude *= persistance;
+            frequency *= lacunarity;
+        }
+        
 
         st.Stop();
        UnityEngine.Debug.Log(string.Format("CPU 3D Perlin took {0} ms to complete", st.ElapsedMilliseconds));    
