@@ -193,15 +193,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccc41c0877e3ade43bd91c8d9ae2c889, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  noiseType: 1
-  width: 100
-  height: 100
-  depth: 100
+  noiseType: 2
+  RenderNoise: 0
+  width: 1000
+  height: 1000
+  depth: 1000
   scale: 19.16
   seed: 21
   octaves: 3
-  lacunarity: 2.32
-  persistance: 0.34
+  lacunarity: 1.6
+  persistance: 0.21
   cutoff: 0.174
 --- !u!4 &571834829
 Transform:

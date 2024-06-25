@@ -39,4 +39,6 @@ public class PerlinRenderer : MonoBehaviour
         st.Stop();
         UnityEngine.Debug.Log(string.Format("Rendering CPU 3D Perlin took {0} ms to complete", st.ElapsedMilliseconds));
     }
+
+    
 }
