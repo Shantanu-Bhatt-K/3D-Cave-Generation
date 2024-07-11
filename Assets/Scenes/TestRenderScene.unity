@@ -193,17 +193,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ccc41c0877e3ade43bd91c8d9ae2c889, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  noiseType: 2
-  RenderNoise: 0
-  width: 1000
-  height: 1000
-  depth: 1000
-  scale: 19.16
-  seed: 21
+  noiseType: 4
+  RenderNoise: 1
+  width: 300
+  height: 300
+  depth: 300
+  scale: 41.76
+  seed: 327
   octaves: 3
   lacunarity: 1.6
-  persistance: 0.21
-  cutoff: 0.174
+  persistance: 0.54
+  noiseShader: {fileID: 7200000, guid: 0a545b65bba64f54380b992d722d9338, type: 3}
+  lower_cutoff: 0
+  upper_cutoff: 0.6
+  wormCount: 300
+  wormLength: 300
+  wormRadius: 3
 --- !u!4 &571834829
 Transform:
   m_ObjectHideFlags: 0

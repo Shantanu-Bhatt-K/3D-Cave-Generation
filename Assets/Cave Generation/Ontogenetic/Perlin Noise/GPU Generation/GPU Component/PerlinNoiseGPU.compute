@@ -3,7 +3,7 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture3D<float> Result;
+RWStructuredBuffer<float> Result;
 int width;
 int height;
 int depth;
@@ -11,7 +11,7 @@ float scale;
 int octaves;
 float lacunarity;
 float persistance;
-RWStructuredBuffer<float> p;
+RWStructuredBuffer<int> p;
 RWStructuredBuffer<float3> octaveOffsets;
 
 
@@ -62,7 +62,10 @@ double Noise(double x, double y, double z)
 [numthreads(8,8,8)]
 void GenerateNoise (uint3 id : SV_DispatchThreadID)
 {
-    // TODO: insert actual code here!
+    if (id.x > width - 1 || id.y > height - 1  || id.z>depth-1)
+    {
+        return;
+    }
     float amplitude = 1;
     float frequency = 1;
     float noiseValue = 0;
@@ -72,11 +75,13 @@ void GenerateNoise (uint3 id : SV_DispatchThreadID)
         float val = (float) Noise(id.x / scale * frequency + octaveOffsets[i].x,
                     id.y / scale * frequency + octaveOffsets[i].y,
                     id.z / scale * frequency + octaveOffsets[i].z);
+        
         noiseValue += val * amplitude;
         amplitude *= persistance;
         frequency *= lacunarity;
     }
-    Result[id.xyz] = noiseValue;
+    uint index = id.z * width * height + id.y * width + id.x;
+    Result[index] = noiseValue;
 
 }
 
