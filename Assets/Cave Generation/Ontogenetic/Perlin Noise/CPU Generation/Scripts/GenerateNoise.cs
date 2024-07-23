@@ -30,6 +30,12 @@ public class GenerateNoise : MonoBehaviour
     public int wormCount=10;
     public int wormLength = 30;
     public float wormRadius = 3f;
+
+
+    [Header("Marching Cubes Data")]
+    public MeshFilter meshFilter;
+    public bool isMarchingCubes;
+
     
     public void GenerateMap()
     {
@@ -44,35 +50,53 @@ public class GenerateNoise : MonoBehaviour
             case NoiseType.CPU3D:
                 float[,,] meshData= Perlin_3d_Calc.MeshData_Gen(width, height, depth,scale,seed,octaves,lacunarity,persistance);
                 if(RenderNoise)
-                    gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData, new Vector3(width, height, depth),cutoff);
+                    if(!isMarchingCubes)
+                        gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData, new Vector3(width, height, depth),cutoff);
+                    else
+                        MarchingCubes.DevelopMesh(meshData,cutoff,meshFilter,width,height,depth);
                 break;
             case NoiseType.CPU3D_Multi:
                 float[,,] meshDataMulti = Perlin_3D_Multi.MeshDataGen(width, height, depth, scale, seed, octaves, lacunarity, persistance);
                 if (RenderNoise)
-                    gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshDataMulti, new Vector3(width, height, depth), cutoff);
+                    if(!isMarchingCubes)
+                        gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshDataMulti, new Vector3(width, height, depth), cutoff);
+                    else
+                        MarchingCubes.DevelopMesh(meshDataMulti, cutoff, meshFilter, width, height, depth);
                 break;
             case NoiseType.GPU_3D:
                 float[,,] meshDataGPU = Perlin_3D_GPU.MeshDataGen(width, height, depth, scale, seed, octaves, lacunarity, persistance,noiseShader);
                 if (RenderNoise)
-                    gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshDataGPU, new Vector3(width, height, depth), cutoff);
+                    if (!isMarchingCubes)
+                        gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshDataGPU, new Vector3(width, height, depth), cutoff);
+                    else
+                        MarchingCubes.DevelopMesh(meshDataGPU, cutoff, meshFilter, width, height, depth);
                 break;
             case NoiseType.Worm3D:
                 float[,,] meshData_Worm=new float[width, height, depth];
                 PerlinWormCPU.MeshData_Gen(width, height, depth, scale, seed, octaves, lacunarity, persistance, ref meshData_Worm, wormCount, wormLength, wormRadius);
                 if (RenderNoise)
-                    gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData_Worm, new Vector3(width, height, depth), cutoff);
+                    if (!isMarchingCubes)
+                        gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData_Worm, new Vector3(width, height, depth), cutoff);
+                    else
+                        MarchingCubes.DevelopMesh(meshData_Worm, cutoff, meshFilter, width, height, depth);
                 break;
             case NoiseType.WormMulti:
                 float[,,] meshData_WormMulti = new float[width, height, depth];
                 PerlinWormMulti.MeshData_Gen(width, height, depth, scale, seed, octaves, lacunarity, persistance, meshData_WormMulti, wormCount, wormLength, wormRadius);
                 if (RenderNoise)
-                    gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData_WormMulti, new Vector3(width, height, depth), cutoff);
+                    if (!isMarchingCubes)
+                        gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData_WormMulti, new Vector3(width, height, depth), cutoff);
+                    else
+                        MarchingCubes.DevelopMesh(meshData_WormMulti, cutoff, meshFilter, width, height, depth);
                 break;
             case NoiseType.Worm_Perlin:
                 float[,,] meshData_WormPerlin = Perlin_3D_GPU.MeshDataGen(width, height, depth, scale, seed, octaves, lacunarity, persistance, noiseShader);
                 PerlinWormCPU.MeshData_Gen(width, height, depth, scale, seed, octaves, lacunarity, persistance, ref meshData_WormPerlin, wormCount, wormLength, wormRadius);
                 if (RenderNoise)
-                    gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData_WormPerlin, new Vector3(width, height, depth), cutoff);
+                    if (!isMarchingCubes)
+                        gameObject.GetComponent<PerlinRenderer>().RenderCPU3D(meshData_WormPerlin, new Vector3(width, height, depth), cutoff);
+                    else
+                        MarchingCubes.DevelopMesh(meshData_WormPerlin, cutoff, meshFilter, width, height, depth);
                 break;
 
             default:
@@ -84,6 +108,7 @@ public class GenerateNoise : MonoBehaviour
     public void ClearWindow()
     {
         gameObject.GetComponent<PerlinRenderer>().Clear();
+        GameObject.DestroyImmediate(meshFilter.sharedMesh);
     }
 
     
