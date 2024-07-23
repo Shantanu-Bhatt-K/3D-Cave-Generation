@@ -69,7 +69,7 @@ void GenerateNoise (uint3 id : SV_DispatchThreadID)
     float amplitude = 1;
     float frequency = 1;
     float noiseValue = 0;
-  
+    float divider = 0;
     for (int i = 0; i < octaves;i++)
     {
         float val = (float) Noise(id.x / scale * frequency + octaveOffsets[i].x,
@@ -77,9 +77,11 @@ void GenerateNoise (uint3 id : SV_DispatchThreadID)
                     id.z / scale * frequency + octaveOffsets[i].z);
         
         noiseValue += val * amplitude;
+        divider += amplitude;
         amplitude *= persistance;
         frequency *= lacunarity;
     }
+    
     uint index = id.z * width * height + id.y * width + id.x;
     Result[index] = noiseValue;
 

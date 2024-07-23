@@ -39,25 +39,31 @@ public static class Perlin_3d_Calc
             octaveOffsets[i].z = random.Next(-100000, 100000);
         }
         float[,,] meshdata = new float[width,height,depth];
-        float amplitude = 1f;
-        float frequency = 1f;
-        for(int l=0;l<octaves;l++)
-        {
+       
+        
             for (int k = 0; k < depth; k++)
             {
                 for (int j = 0; j < height; j++)
                 {
                     for (int i = 0; i < width; i++)
                     {
-                        float val = (float)Noise(i / scale * frequency + octaveOffsets[l].x, j / scale * frequency + octaveOffsets[l].y, k / scale * frequency + octaveOffsets[l].z);
-                        meshdata[i, j, k] += val * amplitude;
+                        float amplitude = 1f;
+                        float frequency = 1f;
+                        float divider = 0;
+                        for (int l = 0; l < octaves; l++)
+                        {
+                            float val = (float)Noise(i / scale * frequency + octaveOffsets[l].x, j / scale * frequency + octaveOffsets[l].y, k / scale * frequency + octaveOffsets[l].z);
+                            meshdata[i, j, k] += val * amplitude;
+                            divider += amplitude;    
+                            amplitude *= persistance;
+                            frequency *= lacunarity;
+                        }
+                    meshdata[i,j,k] /= divider;
                     }
                 }
                    
             }
-            amplitude *= persistance;
-            frequency *= lacunarity;
-        }
+           
         
 
         st.Stop();

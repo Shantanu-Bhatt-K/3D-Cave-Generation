@@ -16,7 +16,7 @@ public class PerlinRenderer : MonoBehaviour
         st.Stop();
         UnityEngine.Debug.Log(string.Format("Clearing CPU 3D Perlin took {0} ms to complete", st.ElapsedMilliseconds));
     }
-    public void RenderCPU3D(float[,,] meshData,Vector3 size,float lower_cutoff)
+    public void RenderCPU3D(float[,,] meshData,Vector3 size,float cutoff)
     {
         Stopwatch st = new Stopwatch();
         st.Start();
@@ -26,7 +26,7 @@ public class PerlinRenderer : MonoBehaviour
             {
                 for(int i=0;i<size.x;i++)
                 {
-                    if (meshData[i, j, k] <= lower_cutoff)
+                    if (meshData[i, j, k] <= cutoff)
                         continue;
                     GameObject cube = Instantiate(renderObject3D);
                     cube.transform.position = new Vector3(i, j, k);

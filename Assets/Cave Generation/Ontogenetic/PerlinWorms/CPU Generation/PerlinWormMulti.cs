@@ -1,7 +1,8 @@
 using UnityEngine;
 using System;
+using System.Threading.Tasks;
 
-public static class PerlinWormCPU
+public static class PerlinWormMulti
 {
     static readonly int[] p = new int[512];
     static readonly int[] permutation = {
@@ -17,7 +18,7 @@ public static class PerlinWormCPU
         222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
     };
 
-    static PerlinWormCPU()
+    static PerlinWormMulti()
     {
         for (int i = 0; i < 256; i++)
         {
@@ -25,7 +26,7 @@ public static class PerlinWormCPU
         }
     }
 
-    public static void MeshData_Gen(int width, int height, int depth, float scale, int seed, int octaves, float lacunarity, float persistance, ref float[,,] mesh_data, int wormCount, int wormLength, float radiusMultiplier)
+    public static void MeshData_Gen(int width, int height, int depth, float scale, int seed, int octaves, float lacunarity, float persistance, float[,,] mesh_data, int wormCount, int wormLength, float radiusMultiplier)
     {
         System.Random random = new System.Random(seed);
         Vector3[] octaveOffsets = new Vector3[octaves];
@@ -38,26 +39,25 @@ public static class PerlinWormCPU
             );
         }
 
-        for (int i = 0; i < wormCount; i++)
+        Parallel.For(0, wormCount, i =>
         {
             Vector3 position = new Vector3(
                random.Next(0, width),
                random.Next(0, height),
                random.Next(0, depth)
            );
-            float radius = (float)random.NextDouble()*radiusMultiplier;
+            float radius = (float)random.NextDouble() * radiusMultiplier;
             for (int j = 0; j < wormLength; j++)
             {
-                EditMeshData(ref mesh_data, position, radius, width, height, depth);
+                EditMeshData(mesh_data, position, radius, width, height, depth);
                 Vector3 dir = GetPerlinDirection(position, scale, seed, octaves, lacunarity, persistance, octaveOffsets);
                 position += dir * radius;
                 radius = (float)random.NextDouble() * radiusMultiplier;
-
             }
-        }
+        });
     }
 
-    static void EditMeshData(ref float[,,] mesh_data, Vector3 position, float radius, int width, int height, int depth)
+    static void EditMeshData(float[,,] mesh_data, Vector3 position, float radius, int width, int height, int depth)
     {
         int x = Mathf.RoundToInt(position.x);
         int y = Mathf.RoundToInt(position.y);
@@ -98,15 +98,15 @@ public static class PerlinWormCPU
             float noiseY = (float)Noise((position.y + octaveOffsets[l].y) / scale * frequency, (position.z + octaveOffsets[l].z) / scale * frequency);
             float noiseZ = (float)Noise((position.z + octaveOffsets[l].z) / scale * frequency, (position.x + octaveOffsets[l].x) / scale * frequency);
 
-            angleX += noiseX * amplitude ;
-            angleY += noiseY * amplitude ;
+            angleX += noiseX * amplitude;
+            angleY += noiseY * amplitude;
             angleZ += noiseZ * amplitude;
 
             amplitude *= persistance;
             frequency *= lacunarity;
         }
 
-        return new Vector3(angleX,angleY,angleZ).normalized;
+        return new Vector3(angleX, angleY, angleZ).normalized;
     }
 
     public static double Noise(double x, double y)
