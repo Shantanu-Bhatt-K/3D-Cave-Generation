@@ -45,13 +45,13 @@ public static class PerlinWormCPU
                random.Next(0, height),
                random.Next(0, depth)
            );
-            float radius = (float)random.NextDouble()*radiusMultiplier;
+            float radius = radiusMultiplier;
             for (int j = 0; j < wormLength; j++)
             {
                 EditMeshData(ref mesh_data, position, radius, width, height, depth);
                 Vector3 dir = GetPerlinDirection(position, scale, seed, octaves, lacunarity, persistance, octaveOffsets);
                 position += dir * radius;
-                radius = (float)random.NextDouble() * radiusMultiplier;
+                radius = radiusMultiplier;
 
             }
         }

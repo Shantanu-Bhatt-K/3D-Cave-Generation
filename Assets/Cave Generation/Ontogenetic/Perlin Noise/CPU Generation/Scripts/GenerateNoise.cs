@@ -108,7 +108,7 @@ public class GenerateNoise : MonoBehaviour
     public void ClearWindow()
     {
         gameObject.GetComponent<PerlinRenderer>().Clear();
-        GameObject.DestroyImmediate(meshFilter.sharedMesh);
+        meshFilter.sharedMesh = new Mesh();
     }
 
     
