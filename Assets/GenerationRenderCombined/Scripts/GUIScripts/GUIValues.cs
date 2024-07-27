@@ -57,7 +57,7 @@ public class GUIValues : MonoBehaviour
     [Range(0f, 1f)]
     public float p_persistance = 0.5f;
     [Tooltip("Frequency multiplier per octave")]
-    [Min(2f)]
+    [Min(1f)]
     public float p_lacunarity = 2f;
 
 
@@ -108,7 +108,7 @@ public class GUIValues : MonoBehaviour
 
     public void ClearWindow()
     {
-        meshFilter.sharedMesh = new Mesh();
+        meshFilter.sharedMesh.Clear();
     }
 
 

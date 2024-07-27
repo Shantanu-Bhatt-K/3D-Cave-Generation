@@ -85,14 +85,16 @@ public static class PerlinNoiseData
 
     static public void RescaleValues(float[,,] pointCloud, float min_value,float max_value)
     {
-        int size = GUIValues.instance.size;
+        int size = GUIValues.instance.size; // Cache the size value
+
         for (int k = 0; k < size; k++)
         {
             for (int j = 0; j < size; j++)
             {
                 for (int i = 0; i < size; i++)
                 {
-                    pointCloud[i,j,k]=Mathf.InverseLerp(min_value, max_value, pointCloud[i,j,k]);
+                    float value = pointCloud[i, j, k];
+                    pointCloud[i, j, k] = (value - min_value) / (max_value - min_value);
                 }
             }
         }
