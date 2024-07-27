@@ -15,6 +15,13 @@ public class MarchingTable
 
     };
 
+    public static int[,] CornerIndices = new int[,]
+{
+    {0, 1}, {1, 2}, {3, 2}, {0, 3}, // Edges on bottom face
+    {4, 5}, {5, 6}, {7, 6}, {4, 7}, // Edges on top face
+    {0, 4}, {1, 5}, {2, 6}, {3, 7}  // Edges connecting top and bottom faces
+};
+
     public static Vector3[,] Edges = new Vector3[12, 2] {
 
         { new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 0.0f, 0.0f) },
