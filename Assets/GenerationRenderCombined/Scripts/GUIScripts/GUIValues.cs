@@ -44,7 +44,8 @@ public class GUIValues : MonoBehaviour
     public ComputeShader W_Compute_Shader;
     [Tooltip("The Compute Shader for Perlin and Worms Generation ")]
     public ComputeShader PW_Compute_Shader;
-    
+    [Tooltip("The Compute Shader for Marching Cubes")]
+    public ComputeShader Marching_Cube_Shader;
     
     
     [Header("Perlin Properties")]
@@ -90,25 +91,34 @@ public class GUIValues : MonoBehaviour
 
     public void GenerateMap()
     {
+        System.Diagnostics.Stopwatch st = new System.Diagnostics.Stopwatch();
+        st.Start();
         ClearWindow();
 
         switch (generationType)
         {
             
             case GenerationType.Perlin_CPU_Single_Thread:
-                PerlinNoiseData.GenerateMesh();
+                PerlinNoiseSINGLE.GenerateMesh();
                 break;
-               
-
+            case GenerationType.Perlin_CPU_Multi_Thread:
+                PerlinNoiseMULTI.GenerateMesh();
+                break;
+            case GenerationType.Perlin_GPU:
+                PerlinNoiseGPU.GenerateMesh();
+                break;
             default:
                 break;
 
         }
+        st.Stop();
+        UnityEngine.Debug.Log(string.Format("Render took {0} seconds", st.ElapsedMilliseconds));
     }
 
     public void ClearWindow()
     {
-        meshFilter.sharedMesh.Clear();
+        meshFilter.GetComponent<MeshFilter>().sharedMesh.Clear();
+        
     }
 
 

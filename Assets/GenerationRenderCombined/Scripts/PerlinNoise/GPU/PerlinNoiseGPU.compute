@@ -1,0 +1,94 @@
+
+
+
+
+#pragma kernel GenerateNoise
+
+
+
+float scale;
+int octaves;
+float persistance;
+float lacunarity;
+int seed;
+int size;
+// Buffers for data
+// Output texture for noise values
+
+RWStructuredBuffer<int> p;
+RWStructuredBuffer<float3> octaveOffsets;
+RWStructuredBuffer<float> outputBuffer;
+
+
+double Fade(double t)
+{
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+double Lerp(double t, double a, double b)
+{
+    return a + t * (b - a);
+}
+
+double Grad(int hash, double x, double y, double z)
+{
+    int h = hash & 15;
+    double u = h < 8 ? x : y;
+    double v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+    return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+}
+
+
+double Noise(double x, double y, double z)
+{
+    int X = (int) floor(x) & 255;
+    int Y = (int) floor(y) & 255;
+    int Z = (int) floor(z) & 255;
+
+    x -= floor(x);
+    y -= floor(y);
+    z -= floor(z);
+
+    double u = Fade(x);
+    double v = Fade(y);
+    double w = Fade(z);
+
+    int A = p[X] + Y;
+    int AA = p[A] + Z;
+    int AB = p[A + 1] + Z;
+    int B = p[X + 1] + Y;
+    int BA = p[B] + Z;
+    int BB = p[B + 1] + Z;
+
+    return Lerp(w, Lerp(v, Lerp(u, Grad(p[AA], x, y, z), Grad(p[BA], x - 1, y, z)), Lerp(u, Grad(p[AB], x, y - 1, z), Grad(p[BB], x - 1, y - 1, z))), Lerp(v, Lerp(u, Grad(p[AA + 1], x, y, z - 1), Grad(p[BA + 1], x - 1, y, z - 1)), Lerp(u, Grad(p[AB + 1], x, y - 1, z - 1), Grad(p[BB + 1], x - 1, y - 1, z - 1))));
+}
+
+
+[numthreads(8, 8, 8)]
+void GenerateNoise(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x > size - 1 || id.y > size - 1 || id.z > size - 1)
+    {
+        return;
+    }
+    float amplitude = 1;
+    float frequency = 1;
+    float noiseValue = 0;
+    float divider = 0;
+    for (int i = 0; i < octaves; i++)
+    {
+        float val = (float) Noise(id.x / scale * frequency + octaveOffsets[i].x,
+                    id.y / scale * frequency + octaveOffsets[i].y,
+                    id.z / scale * frequency + octaveOffsets[i].z);
+        
+        noiseValue += val * amplitude;
+        divider += amplitude;
+        amplitude *= persistance;
+        frequency *= lacunarity;
+    }
+    
+    uint index = id.z * size * size + id.y * size + id.x;
+    outputBuffer[index] = noiseValue;
+
+}
+
