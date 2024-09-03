@@ -5,7 +5,12 @@ static const int3 Corners[8] =
     int3(0, 0, 0), int3(1, 0, 0), int3(1, 1, 0), int3(0, 1, 0),
     int3(0, 0, 1), int3(1, 0, 1), int3(1, 1, 1), int3(0, 1, 1)
 };
-
+struct Triangle
+{
+    float3 vertexA;
+    float3 vertexB;
+    float3 vertexC;
+};
 // Define the edge indices connecting the corners
 static const int2 CornerIndices[12] =
 {
@@ -291,8 +296,8 @@ static const int TriTable[256][16] =
 };
 
 RWStructuredBuffer<float> pointCloud; // 3D texture storing the scalar field
-RWStructuredBuffer<float3> vertices; // Output buffer for vertices
-RWStructuredBuffer<int> triangles; // Output buffer for triangle indices
+
+AppendStructuredBuffer<Triangle> triangles; // Output buffer for triangle indices
 
 cbuffer Constants
 {
@@ -365,22 +370,13 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     {
         if (TriTable[cubeIndex][j] == -1)
             break;
-
-        float3 vertex1 = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j]);
-        float3 vertex2 = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 1]);
-        float3 vertex3 = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 2]);
-
-        int vertIndex = vertices.IncrementCounter();
-        vertices[vertIndex] = vertex1;
-        triangles[vertIndex] = vertIndex;
-
-        vertIndex = vertices.IncrementCounter();
-        vertices[vertIndex] = vertex2;
-        triangles[vertIndex] = vertIndex;
-
-        vertIndex = vertices.IncrementCounter();
-        vertices[vertIndex] = vertex3;
-        triangles[vertIndex] = vertIndex;
+        Triangle tri;
+        tri.vertexA = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j]);
+        tri.vertexB = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 1]);
+        tri.vertexC= InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 2]);
+        triangles.Append(tri);
+        
+    
     }
 }
 

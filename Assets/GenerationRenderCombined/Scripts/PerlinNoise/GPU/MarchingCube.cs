@@ -1,13 +1,33 @@
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+
 using UnityEngine;
 using Unity.Mathematics;
+using System.Linq;
+struct TriangleGPU
+{
 
+    public Vector3 a;
+    public Vector3 b;
+    public Vector3 c;
+
+    public Vector3 this[int i]
+    {
+        get
+        {
+            switch (i)
+            {
+                case 0:
+                    return a;
+                case 1:
+                    return b;
+                default:
+                    return c;
+            }
+        }
+    }
+}
 static public class MarchingCubesCompute
 {
     static private ComputeBuffer pointCloudBuffer;  // Buffer for the scalar field
-    static private ComputeBuffer verticesBuffer;    // Buffer for vertices output
     static private ComputeBuffer trianglesBuffer;   // Buffer for triangles output
     static private int kernelHandle;
     static private int gridSize;
@@ -19,9 +39,9 @@ static public class MarchingCubesCompute
         numVoxels = gridSize * gridSize * gridSize;
 
         pointCloudBuffer = new ComputeBuffer(numVoxels, sizeof(float));
-        verticesBuffer = new ComputeBuffer(numVoxels * 5, sizeof(float) * 3, ComputeBufferType.Append);
-        trianglesBuffer = new ComputeBuffer(numVoxels * 5, sizeof(int), ComputeBufferType.Append);
-
+        
+        trianglesBuffer = new ComputeBuffer(numVoxels * 5, sizeof(float)*3*3, ComputeBufferType.Append);
+        trianglesBuffer.SetCounterValue(0);
         // Set initial data or fill with noise, density field, etc.
         pointCloudBuffer.SetData(pointCloudData);
 
@@ -33,7 +53,6 @@ static public class MarchingCubesCompute
         marchingCubesShader.SetInt("size", gridSize);
         marchingCubesShader.SetFloat("isoLevel", GUIValues.instance.cutoff);
         marchingCubesShader.SetBuffer(kernelHandle, "pointCloud", pointCloudBuffer);
-        marchingCubesShader.SetBuffer(kernelHandle, "vertices", verticesBuffer);
         marchingCubesShader.SetBuffer(kernelHandle, "triangles", trianglesBuffer);
 
         // Dispatch the compute shader
@@ -41,51 +60,47 @@ static public class MarchingCubesCompute
         marchingCubesShader.Dispatch(kernelHandle, threadGroups, threadGroups, threadGroups);
 
         // Render in Edit mode using SceneView callbacks
-#if UNITY_EDITOR
-        SceneView.duringSceneGui += OnSceneGUI;
-        SceneView.RepaintAll();
-#endif
+
+
     }
 
-#if UNITY_EDITOR
-    static private void OnSceneGUI(SceneView sceneView)
-    {
-        RenderMesh();
-    }
-#endif
 
-    static private void RenderMesh()
+
+    static public void SetMesh()
     {
-        int vertexCount = GetBufferCount(verticesBuffer);
+        Mesh mesh = new Mesh();
+        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         int triangleCount = GetBufferCount(trianglesBuffer);
+        TriangleGPU[] meshTriangles= new TriangleGPU[triangleCount];
+        trianglesBuffer.GetData(meshTriangles);
+        Vector3[] vertices = new Vector3[triangleCount * 3];
+        int[] triangles = new int[triangleCount * 3];
+        for (int i = 0; i < triangleCount; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                triangles[i * 3 + j] = i * 3 + j;
+                vertices[i * 3 + j] = meshTriangles[i][j];
 
-        // Print out the counts
-        Debug.Log($"Generated {vertexCount} vertices and {triangleCount / 3} triangles.");
-        Material material = new Material(Shader.Find("Custom/MarchingCubesShader"));
 
-        material.SetBuffer("verticesBuffer", verticesBuffer);
-        material.SetBuffer("trianglesBuffer", trianglesBuffer);
+            }
+        }
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        GUIValues.instance.meshFilter.sharedMesh = mesh;
 
-        // Render the procedural mesh
-        Graphics.DrawProceduralNow(MeshTopology.Triangles, trianglesBuffer.count, 1);
-
-        // Optional: Clear buffers after rendering in Edit mode
-#if UNITY_EDITOR
-        ClearBuffer();
-#endif
     }
 
     static void ClearBuffer()
     {
         // Release the compute buffers
         if (pointCloudBuffer != null) pointCloudBuffer.Release();
-        if (verticesBuffer != null) verticesBuffer.Release();
+        
         if (trianglesBuffer != null) trianglesBuffer.Release();
 
         // Remove SceneView callback after rendering is done in Edit mode
-#if UNITY_EDITOR
-        SceneView.duringSceneGui -= OnSceneGUI;
-#endif
+
     }
 
     static private int GetBufferCount(ComputeBuffer buffer)
