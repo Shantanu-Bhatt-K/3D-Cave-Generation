@@ -74,6 +74,7 @@ public static class PerlinNoiseGPU
         Debug.Log("Multi Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
         RescaleValues(noiseValues);
+        PerlinWorms.GenWorms(noiseValues);
         st.Stop();
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();

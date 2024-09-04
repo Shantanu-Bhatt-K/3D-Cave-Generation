@@ -33,6 +33,9 @@ public class GUIValues : MonoBehaviour
     [Tooltip("Cutoff for Render")]
     [Range(0f, 1f)]
     public float cutoff;
+    [Tooltip("Bool for activating Debugging")]
+    public bool isDebug = false;
+    
     [Tooltip("Marching Cubes Mesh Filter")]
     public MeshFilter meshFilter;
     public GameObject Chunk;
@@ -80,6 +83,9 @@ public class GUIValues : MonoBehaviour
     public int wormLength = 200;
     [Tooltip("radius of the worm")]
     public float wormRadius = 3f;
+    [Tooltip("Cutoff for local maxima Selection for perlinWorms")]
+    [Range(0f, 1f)]
+    public float maximaCutoff;
     [HideInInspector]
     public static GUIValues instance;
 
