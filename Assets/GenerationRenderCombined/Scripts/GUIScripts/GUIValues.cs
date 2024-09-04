@@ -35,7 +35,7 @@ public class GUIValues : MonoBehaviour
     public float cutoff;
     [Tooltip("Marching Cubes Mesh Filter")]
     public MeshFilter meshFilter;
-    
+    public GameObject Chunk;
     
     [Header("ComputeShaders")]
     [Tooltip("The Compute Shader for Perlin Noise Generation")]

@@ -78,10 +78,13 @@ public static class PerlinNoiseGPU
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
         MarchingCubesCompute.GenerateMarchingCubes(noiseValues);
-        MarchingCubesCompute.SetMesh();
+       
         st.Stop();
         Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
-        
+        st.Restart();
+        MarchingCubesCompute.SetMesh();
+        st.Stop();
+        Debug.Log("mesh Setup took" + st.ElapsedMilliseconds + " milliseconds");
         outputBuffer.Release();
         octaveOffsetBuffer.Release();
         pBuffer.Release();
