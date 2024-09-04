@@ -18,7 +18,7 @@ int size;
 RWStructuredBuffer<int> p;
 RWStructuredBuffer<float3> octaveOffsets;
 RWStructuredBuffer<float> outputBuffer;
-
+RWTexture3D<float> Texture;
 
 double Fade(double t)
 {
@@ -89,6 +89,6 @@ void GenerateNoise(uint3 id : SV_DispatchThreadID)
     
     uint index = id.z * size * size + id.y * size + id.x;
     outputBuffer[index] = noiseValue;
-
+    Texture[id.xyz] = noiseValue;
 }
 

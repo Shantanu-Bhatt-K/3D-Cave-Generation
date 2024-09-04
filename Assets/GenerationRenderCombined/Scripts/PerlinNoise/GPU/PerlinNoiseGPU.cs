@@ -1,5 +1,9 @@
-using System.Drawing;
+
+using System.Linq;
+using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
+using UnityEngine.Rendering;
 
 public static class PerlinNoiseGPU
 {
@@ -39,6 +43,11 @@ public static class PerlinNoiseGPU
         pBuffer = new ComputeBuffer(512, sizeof(int));
         pBuffer.SetData(p);
         ComputeShader perlinNoiseCompute = GUIValues.instance.P_Compute_Shader;
+        RenderTexture outputTexture = new RenderTexture(GUIValues.instance.size,GUIValues.instance.size,0, RenderTextureFormat.RFloat,0);
+        
+        outputTexture.enableRandomWrite = true;
+        outputTexture.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;
+        outputTexture.volumeDepth = GUIValues.instance.size;
         
         outputBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(float));
         
@@ -62,14 +71,15 @@ public static class PerlinNoiseGPU
         perlinNoiseCompute.SetBuffer(0, "octaveOffsets", octaveOffsetBuffer);
         perlinNoiseCompute.SetBuffer(0, "p", pBuffer);
         perlinNoiseCompute.SetBuffer(0, "outputBuffer", outputBuffer);
-        
+        perlinNoiseCompute.SetTexture(0, "Texture", outputTexture);
         
         int threadGroups = Mathf.CeilToInt(GUIValues.instance.size / 8.0f);
 
         perlinNoiseCompute.Dispatch(0, threadGroups, threadGroups, threadGroups);
-
-        float[] noiseValues = new float[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
-        outputBuffer.GetData(noiseValues);
+        
+        
+        float[] noiseValues = GetArray(outputTexture);
+        
         st.Stop();
         Debug.Log("Multi Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
@@ -77,8 +87,8 @@ public static class PerlinNoiseGPU
         st.Stop();
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
-        MarchingCubesCompute.GenerateMarchingCubes(noiseValues);
-        MarchingCubesCompute.SetMesh();
+        //MarchingCubesCompute.GenerateMarchingCubes(noiseValues);
+        //MarchingCubesCompute.SetMesh();
         st.Stop();
         Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
         
@@ -104,5 +114,24 @@ public static class PerlinNoiseGPU
             noiseValues[i] = (noiseValues[i] - minValue) / (maxValue - minValue);
         }
     }
-    
+
+    static float[] GetArray(RenderTexture rt3D)
+    {
+        int width = rt3D.width, height = rt3D.height, depth = rt3D.volumeDepth;
+        var a = new NativeArray<float>(width * height * depth, Allocator.Persistent, NativeArrayOptions.UninitializedMemory); //change if format is not 8 bits (i was using R8_UNorm) (create a struct with 4 bytes etc)
+        Texture3D output = new Texture3D(width, height, depth, rt3D.graphicsFormat, TextureCreationFlags.None);
+       AsyncGPUReadback.RequestIntoNativeArray(ref a, rt3D, 0, (_) =>
+        {
+            
+            output.SetPixelData(a, 0);
+            output.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+           
+            a.Dispose();
+            rt3D.Release();
+        }).WaitForCompletion();
+        Color[] colors= output.GetPixels();
+        float[] pointCloud = colors.Select(c => c.r).ToArray();
+        return pointCloud;
+    }
+
 }
