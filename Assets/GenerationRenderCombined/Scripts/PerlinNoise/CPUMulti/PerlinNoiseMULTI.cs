@@ -82,10 +82,10 @@ public static class PerlinNoiseMULTI
         st.Stop();
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
-        MarchingCubesMulti.GenerateMarchingCubes(pointCloud);
+        MarchingCubesMULTI.GenerateMarchingCubes(pointCloud);
         st.Stop();
         Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
-        MarchingCubesMulti.SetMesh();
+        MarchingCubesMULTI.SetMesh();
     }
 
     static public void RescaleValues(float[] pointCloud, float min_value, float max_value)

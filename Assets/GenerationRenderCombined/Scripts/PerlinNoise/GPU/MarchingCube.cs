@@ -2,7 +2,7 @@
 using UnityEngine;
 using Unity.Mathematics;
 using System.Linq;
-struct TriangleGPU
+struct Triangle
 {
 
     public Vector3 a;
@@ -21,6 +21,21 @@ struct TriangleGPU
                     return b;
                 default:
                     return c;
+            }
+        }
+        set
+        {
+            switch (i)
+            {
+                case 0:
+                    a=value;
+                    break;
+                case 1:
+                    b = value ;
+                    break;
+                default:
+                    c = value ;
+                    break;
             }
         }
     }
@@ -71,7 +86,7 @@ static public class MarchingCubesCompute
         Mesh mesh = new Mesh();
         mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         int triangleCount = GetBufferCount(trianglesBuffer);
-        TriangleGPU[] meshTriangles= new TriangleGPU[triangleCount];
+        Triangle[] meshTriangles= new Triangle[triangleCount];
         trianglesBuffer.GetData(meshTriangles);
         Vector3[] vertices = new Vector3[triangleCount * 3];
         int[] triangles = new int[triangleCount * 3];
@@ -89,7 +104,7 @@ static public class MarchingCubesCompute
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
         GUIValues.instance.meshFilter.sharedMesh = mesh;
-
+        ClearBuffer();
     }
 
     static void ClearBuffer()

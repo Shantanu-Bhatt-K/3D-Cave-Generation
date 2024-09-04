@@ -9,11 +9,11 @@ using UnityEngine.UIElements;
 public class MarchingCubesMULTI
 {
 
-    private static  List<Triangle> meshTriangles= new List<Triangle>();
-    static int index;
+      static ConcurrentBag<Triangle> meshTriangles = new ConcurrentBag<Triangle>();
+    
     public static void GenerateMarchingCubes(float[] pointCloud)
     {
-        index = 0;
+        
         int size = GUIValues.instance.size;
 
 
@@ -33,7 +33,10 @@ public class MarchingCubesMULTI
 
             List<Triangle> threadTriangles = new List<Triangle>();   
             PolygonizeCube(new Vector3(i, j, k), gridVal,threadTriangles);
-            meshTriangles.AddRange(threadTriangles);
+            foreach(Triangle triangle in threadTriangles)
+            {
+                meshTriangles.Add(triangle);
+            }
         });
 
            
@@ -61,57 +64,48 @@ public class MarchingCubesMULTI
     static private void PolygonizeCube(Vector3 position, float[] cubeCorners, List<Triangle> threadTriangles)
     {
         int configIndex = GetConfigIndex(cubeCorners);
+
         if (configIndex == 0 || configIndex == 255)
         {
             return;
         }
-
-        int edgeIndex = 0;
-        for (int t = 0; t < 5; t++)
+        
+        for (int i = 0; i < 16; i += 3)
         {
-            Triangle triangle = new Triangle() ;
-            for (int v = 0; v < 3; v++)
-            {
-                int triTableValue = MarchingTable.Triangles[configIndex, edgeIndex];
-
-                if (triTableValue == -1)
-                {
-                    return;
-                }
-
-                Vector3 edgeStart = position + MarchingTable.Edges[triTableValue, 0];
-                Vector3 edgeEnd = position + MarchingTable.Edges[triTableValue, 1];
-
-                float valueStart = cubeCorners[MarchingTable.CornerIndices[triTableValue, 0]];
-                float valueEnd = cubeCorners[MarchingTable.CornerIndices[triTableValue, 1]];
-
-                Vector3 vertex = InterpolateVertex(edgeStart, edgeEnd, valueStart, valueEnd);
-                triangle.tVertices.Add(vertex);
-                
-               
-                edgeIndex++;
-            }
-            threadTriangles.Add(triangle);
+            int triTableValue = MarchingTable.Triangles[configIndex, i];
+            if (triTableValue == -1)
+                break;
+            Triangle triangle = new Triangle();
+            triangle[0] = InterpolateVertex(position, cubeCorners, MarchingTable.Triangles[configIndex, i]);
+            triangle[1] = InterpolateVertex(position, cubeCorners, MarchingTable.Triangles[configIndex, i + 1]);
+            triangle[2] = InterpolateVertex(position, cubeCorners, MarchingTable.Triangles[configIndex, i + 2]);
+            meshTriangles.Add(triangle);
         }
     }
 
-    private static Vector3 InterpolateVertex(Vector3 a, Vector3 b, float x, float y)
+    static Vector3 InterpolateVertex(Vector3 id, float[] gridVal, int edgeIndex)
     {
-        float cutoff = GUIValues.instance.cutoff;
-        if (Mathf.Abs(cutoff - x) < 0.00001f)
-            return a;
-        if (Mathf.Abs(cutoff - y) < 0.00001f)
-            return b;
-        if (Mathf.Abs(x - y) < 0.00001f)
-            return a;
 
-        float mu = (cutoff - x) / (y - x);
-        mu = Mathf.Clamp01(mu);
-        return a + mu * (b - a);
+        Vector3 p1 = id + MarchingTable.Edges[edgeIndex, 0];
+        Vector3 p2 = id + MarchingTable.Edges[edgeIndex, 1];
+
+        float val1 = gridVal[MarchingTable.CornerIndices[edgeIndex, 0]];
+        float val2 = gridVal[MarchingTable.CornerIndices[edgeIndex, 1]];
+
+        if (Mathf.Abs(GUIValues.instance.cutoff - val1) < 0.00001)
+            return p1;
+        if (Mathf.Abs(GUIValues.instance.cutoff - val2) < 0.00001)
+            return p2;
+        if (Mathf.Abs(val1 - val2) < 0.00001)
+            return p1;
+
+        float t = (GUIValues.instance.cutoff - val1) / (val2 - val1);
+        return Vector3.Lerp(p1, p2, t);
     }
 
     static public void SetMesh()
     {
+        Triangle[] trianglesArray=meshTriangles.ToArray();
         Vector3[] vertices = new Vector3[meshTriangles.Count * 3];
         int[] triangles = new int[meshTriangles.Count * 3];
         for (int i = 0; i < meshTriangles.Count; i++)
@@ -119,7 +113,7 @@ public class MarchingCubesMULTI
             for (int j = 0; j < 3; j++)
             {
                 triangles[i * 3 + j] = i * 3 + j;
-                vertices[i * 3 + j] = meshTriangles[i].tVertices[j];
+                vertices[i * 3 + j] = trianglesArray[i][j];
 
 
             }
@@ -138,5 +132,6 @@ public class MarchingCubesMULTI
         //}
         
         GUIValues.instance.meshFilter.sharedMesh = mesh;
+        meshTriangles.Clear();
     }
 }

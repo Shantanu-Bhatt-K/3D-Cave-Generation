@@ -1,11 +1,10 @@
+using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using static UnityEditor.Searcher.SearcherWindow.Alignment;
 
-public class Triangle
-{
-    public List<Vector3> tVertices = new List<Vector3>();
-}
+
 public class MarchingCubesSINGLE
 {
     private static List<Triangle> meshTriangles = new List<Triangle>();
@@ -84,59 +83,40 @@ public class MarchingCubesSINGLE
         {
             return;
         }
-
-
-        int edgeIndex = 0;
-        // Debug.Log("position=" + position);
-        for (int t = 0; t < 5; t++)
+        for(int i = 0;i < 16;i+=3) 
         {
-            
+            int triTableValue = MarchingTable.Triangles[configIndex,i];
+            if (triTableValue == -1)
+                break;
             Triangle triangle = new Triangle();
-            for (int v = 0; v < 3; v++)
-            {
-
-                int triTableValue = MarchingTable.Triangles[configIndex, edgeIndex];
-
-                if (triTableValue == -1)
-                {
-                    return;
-                }
-                Vector3 edgeStart = position + MarchingTable.Edges[triTableValue, 0];
-                Vector3 edgeEnd = position + MarchingTable.Edges[triTableValue, 1];
-
-                float valueStart = cubeCorners[MarchingTable.CornerIndices[triTableValue, 0]];
-                float valueEnd = cubeCorners[MarchingTable.CornerIndices[triTableValue, 1]];
-
-                Vector3 vertex = InterpolateVertex(edgeStart, edgeEnd, valueStart, valueEnd);
-                triangle.tVertices.Add(vertex);
-
-
-                edgeIndex++;
-            }
-            //Debug.Log($"Triangle added at position: {position}, with vertices: {triangle.tVertices[0]}, {triangle.tVertices[1]}, {triangle.tVertices[2]}");
+            triangle[0] = InterpolateVertex(position, cubeCorners, MarchingTable.Triangles[configIndex,i]);
+            triangle[1] = InterpolateVertex(position, cubeCorners, MarchingTable.Triangles[configIndex,i+1]);
+            triangle[2] = InterpolateVertex(position, cubeCorners, MarchingTable.Triangles[configIndex,i+2]);
             meshTriangles.Add(triangle);
         }
+        
+        
 
     }
 
-    static Vector3 InterpolateVertex(Vector3 a, Vector3 b, float x, float y)
+    static Vector3 InterpolateVertex(Vector3 id, float[] gridVal, int edgeIndex)
     {
-        float cutoff = GUIValues.instance.cutoff;
-        if (Mathf.Abs(cutoff - x) < 0.00001)
-            return (a);
-        if (Mathf.Abs(cutoff - y) < 0.00001)
-            return (b);
-        if (Mathf.Abs(x - y) < 0.00001)
-            return (a);
+       
+        Vector3 p1 = id + MarchingTable.Edges[edgeIndex,0];
+        Vector3 p2 = id + MarchingTable.Edges[edgeIndex, 1];
 
-        float mu = (cutoff - x) / (y - x);
-        mu = Mathf.Clamp01(mu);  // Ensure t is clamped between 0 and 1
-        Vector3 point = a + mu * (b - a);
-        //Debug.Log("p1=" + a + ", p2=" + b + ",p=" + point + ",mu=" + mu);
-        return point;
+        float val1 = gridVal[MarchingTable.CornerIndices[edgeIndex,0]];
+        float val2 = gridVal[MarchingTable.CornerIndices[edgeIndex,1]];
 
+        if (Mathf.Abs(GUIValues.instance.cutoff - val1) < 0.00001)
+            return p1;
+        if (Mathf.Abs(GUIValues.instance.cutoff - val2) < 0.00001)
+            return p2;
+        if (Mathf.Abs(val1 - val2) < 0.00001)
+            return p1;
 
-
+        float t = (GUIValues.instance.cutoff - val1) / (val2 - val1);
+        return Vector3.Lerp(p1, p2, t);
     }
 
     static public void SetMesh()
@@ -150,7 +130,7 @@ public class MarchingCubesSINGLE
             for (int j = 0; j < 3; j++)
             {
                 triangles[i * 3 + j] = i * 3 + j;
-                vertices[i * 3 + j] = meshTriangles[i].tVertices[j];
+                vertices[i * 3 + j] = meshTriangles[i][j];
                 
 
             }

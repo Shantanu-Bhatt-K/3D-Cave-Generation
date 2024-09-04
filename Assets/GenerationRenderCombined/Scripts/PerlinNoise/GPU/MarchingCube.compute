@@ -371,10 +371,11 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         if (TriTable[cubeIndex][j] == -1)
             break;
         Triangle tri;
-        tri.vertexA = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j]);
+        tri.vertexC = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j]);
         tri.vertexB = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 1]);
-        tri.vertexC= InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 2]);
+        tri.vertexA= InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 2]);
         triangles.Append(tri);
+        
         
     
     }
