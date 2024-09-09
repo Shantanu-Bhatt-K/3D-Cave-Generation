@@ -51,7 +51,7 @@ static public class MarchingCubesCompute
     static private int numVoxels;
     static List<Triangle> meshTriangles=new List<Triangle>();
 
-    static public void GenerateMarchingCubes(float[] pointCloudData)
+    static public void GenerateMarchingCubes(double[] pointCloudData)
     {
         
         
@@ -59,7 +59,7 @@ static public class MarchingCubesCompute
         int chunkSize = (int)Mathf.Pow(2, GUIValues.instance.chunkSize);
         int loopCount=Mathf.CeilToInt(gridSize/chunkSize);
 
-        pointCloudBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(float));
+        pointCloudBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(double));
         pointCloudBuffer.SetData(pointCloudData);
         ComputeShader marchingCubesShader = GUIValues.instance.Marching_Cube_Shader;
         // Find the kernel

@@ -45,7 +45,7 @@ public static class PerlinNoiseGPU
     {
         return z * size * size + y * size + x;
     }
-    static void FillSphere(float[] array, int size, float radius)
+    static void FillSphere(double[] array, int size, float radius)
     {
         // Calculate the center of the grid
         float center = (size - 1) / 2.0f;
@@ -110,25 +110,27 @@ public static class PerlinNoiseGPU
         perlinNoiseCompute.Dispatch(0, threadGroups, threadGroups, threadGroups);
 
         double[] pointCloud = new double[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
-        float[] noiseValues=new float[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
+        st.Stop();
+        Debug.Log("GPU Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
+        st.Restart();
         if (GUIValues.instance.isDebug)
         {
-            FillSphere(noiseValues, GUIValues.instance.size, (GUIValues.instance.size / 2) - 1);
+            FillSphere(pointCloud, GUIValues.instance.size, (GUIValues.instance.size / 2) - 1);
         }
         else
         {
             outputBuffer.GetData(pointCloud);
-            noiseValues= Array.ConvertAll(pointCloud, x => (float)x);
+           
         }
         st.Stop();
-        Debug.Log("Multi Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
+        Debug.Log("fetching of data took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
-        RescaleValues(noiseValues);
+        RescaleValues(pointCloud);
         //PerlinWorms.GenWorms(noiseValues);
         st.Stop();
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
-        MarchingCubesCompute.GenerateMarchingCubes(noiseValues);
+        MarchingCubesCompute.GenerateMarchingCubes(pointCloud);
        
         st.Stop();
         Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
@@ -141,10 +143,10 @@ public static class PerlinNoiseGPU
         pBuffer.Release();
     }
 
-    static void RescaleValues(float[] noiseValues)
+    static void RescaleValues(double[] noiseValues)
     {
-        float minValue = float.MaxValue;
-        float maxValue = float.MinValue;
+        double minValue = double.MaxValue;
+        double maxValue = double.MinValue;
 
         for (int i = 0; i < noiseValues.Length; i++)
         {
@@ -157,9 +159,6 @@ public static class PerlinNoiseGPU
         for (int i = 0; i < noiseValues.Length; i++)
         {
             noiseValues[i] = (noiseValues[i] - minValue) / (maxValue - minValue);
-            
-                
-            
         }
     }
     

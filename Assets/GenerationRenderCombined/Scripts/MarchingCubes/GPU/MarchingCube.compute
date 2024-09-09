@@ -295,7 +295,7 @@ static const int TriTable[256][16] =
     { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
 };
 
-RWStructuredBuffer<float> pointCloud; // 3D texture storing the scalar field
+RWStructuredBuffer<double> pointCloud; // 3D texture storing the scalar field
 
 AppendStructuredBuffer<Triangle> triangles; // Output buffer for triangle indices
 int3 chunkPos;
