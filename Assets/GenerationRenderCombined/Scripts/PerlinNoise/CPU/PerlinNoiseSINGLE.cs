@@ -33,77 +33,161 @@ public static class PerlinNoiseSINGLE
             p[256 + i] = p[i] = permutation[i];
         }
     }
+    static float CalculateValue(float distance, float maxDistance)
+    {
+        if (distance > maxDistance)
+        {
+            return 0f; // Outside the sphere
+        }
+        return 1f - (distance / maxDistance); // Linearly decrease from 1 to 0
+    }
+
+    // Function to flatten 3D indices (x, y, z) into a 1D index for the array
+    static int FlattenIndex(int x, int y, int z, int size)
+    {
+        return z * size * size + y * size + x;
+    }
+    static void FillSphere(float[] array, int size, float radius)
+    {
+        // Calculate the center of the grid
+        float center = (size - 1) / 2.0f;
+
+        // Loop through each point in the 3D grid
+        for (int z = 0; z < size; z++)
+        {
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    // Calculate the distance from the center of the grid
+                    float distance = Vector3.Distance(new Vector3(x, y, z), new Vector3(center, center, center));
+
+                    // Calculate the value based on the distance
+                    float value = CalculateValue(distance, radius);
+
+                    // Fill the value into the flattened array
+                    int index = FlattenIndex(x, y, z, size);
+                    array[index] = value;
+                }
+            }
+        }
+    }
     public static void GenerateMesh()
     {
-        System.Diagnostics.Stopwatch st = new System.Diagnostics.Stopwatch();
-        st.Start();
-        System.Random random=new System.Random(GUIValues.instance.seed);
-        Vector3[] octaveOffsets= new Vector3[GUIValues.instance.p_octaves];
-        for (int i = 0; i < GUIValues.instance.p_octaves; i++)
+        float[] noiseValues= new float[GUIValues.instance.size* GUIValues.instance.size* GUIValues.instance.size];
+        if (GUIValues.instance.isDebug)
         {
-            octaveOffsets[i].x = random.Next(-100000, 100000);
-            octaveOffsets[i].y = random.Next(-100000, 100000);
-            octaveOffsets[i].z = random.Next(-100000, 100000);
+            FillSphere(noiseValues, GUIValues.instance.size, (GUIValues.instance.size / 2) - 1);
+            RescaleValues(noiseValues);
+            
+                MarchingCubesSINGLE.GenerateMarchingCubes(noiseValues);
+                MarchingCubesSINGLE.SetMesh();
+           
         }
-        int size = GUIValues.instance.size;
-        float[,,] pointCloud = new float[size, size, size];
-        float min_value = float.MaxValue;
-        float max_value = float.MinValue;
+        else
+        {
+            System.Diagnostics.Stopwatch st = new System.Diagnostics.Stopwatch();
+            st.Start();
+            System.Random random = new System.Random(GUIValues.instance.seed);
+            Vector3[] octaveOffsets = new Vector3[GUIValues.instance.p_octaves];
+            for (int i = 0; i < GUIValues.instance.p_octaves; i++)
+            {
+                octaveOffsets[i].x = random.Next(-100000, 100000);
+                octaveOffsets[i].y = random.Next(-100000, 100000);
+                octaveOffsets[i].z = random.Next(-100000, 100000);
+            }
+            int size = GUIValues.instance.size;
+            float[,,] pointCloud = new float[size, size, size];
+           
+            for (int k = 0; k < size; k++)
+            {
+                for (int j = 0; j < size; j++)
+                {
+                    for (int i = 0; i < size; i++)
+                    {
+                        float amplitude = 1f;
+                        float frequency = 1f;
+
+                        for (int l = 0; l < GUIValues.instance.p_octaves; l++)
+                        {
+                            float val = (float)Noise(i / GUIValues.instance.p_scale * frequency + octaveOffsets[l].x, j / GUIValues.instance.p_scale * frequency + octaveOffsets[l].y, k / GUIValues.instance.p_scale * frequency + octaveOffsets[l].z);
+                            pointCloud[i, j, k] += val * amplitude;
+
+                            amplitude *= GUIValues.instance.p_persistance;
+                            frequency *= GUIValues.instance.p_lacunarity;
+                        }
+                       
+
+                    }
+                }
+            }
+            // Debug.Log(max_value);
+            //Debug.Log(min_value);
+            st.Stop();
+            Debug.Log("Single Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
+            st.Restart();
+            RescaleValues(pointCloud);
+            st.Stop();
+            Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
+            st.Restart();
+            MarchingCubesSINGLE.GenerateMarchingCubes(pointCloud);
+            st.Stop();
+            Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
+            MarchingCubesSINGLE.SetMesh();
+        }
+        
+    }
+
+
+    static public void RescaleValues(float[,,] pointCloud)
+    {
+        int size = GUIValues.instance.size; // Cache the size value
+        float minValue = float.MaxValue;
+        float maxValue = float.MinValue;
         for (int k = 0; k < size; k++)
         {
             for (int j = 0; j < size; j++)
             {
                 for (int i = 0; i < size; i++)
                 {
-                    float amplitude = 1f;
-                    float frequency = 1f;
-                    
-                    for (int l = 0; l < GUIValues.instance.p_octaves; l++)
-                    {
-                        float val = (float)Noise(i /GUIValues.instance.p_scale*frequency + octaveOffsets[l].x, j / GUIValues.instance.p_scale * frequency + octaveOffsets[l].y, k / GUIValues.instance.p_scale * frequency + octaveOffsets[l].z);
-                        pointCloud[i, j, k] += val * amplitude;
-                       
-                        amplitude *= GUIValues.instance.p_persistance;
-                        frequency *= GUIValues.instance.p_lacunarity;
-                    }
-                    if (pointCloud[i,j,k]<min_value)
-                        min_value = pointCloud[i,j,k];
-                    if (pointCloud[i,j,k]>max_value)
-                        max_value = pointCloud[i,j,k];
-                    
+                   
+                    if (pointCloud[i,j,k] < minValue) minValue = pointCloud[i,j,k];
+                    if (pointCloud[i,j,k] > maxValue) maxValue = pointCloud[i,j,k];
                 }
             }
         }
-        // Debug.Log(max_value);
-        //Debug.Log(min_value);
-        st.Stop();
-        Debug.Log("Single Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
-        st.Restart();
-        RescaleValues(pointCloud,min_value,max_value);
-        st.Stop();
-        Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
-        st.Restart();
-        MarchingCubesSINGLE.GenerateMarchingCubes(pointCloud);
-        st.Stop();
-        Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
-        MarchingCubesSINGLE.SetMesh();
-    }
 
-
-    static public void RescaleValues(float[,,] pointCloud, float min_value,float max_value)
-    {
-        int size = GUIValues.instance.size; // Cache the size value
-
-        for (int k = 0; k < size; k++)
+                    for (int k = 0; k < size; k++)
         {
             for (int j = 0; j < size; j++)
             {
                 for (int i = 0; i < size; i++)
                 {
                     float value = pointCloud[i, j, k];
-                    pointCloud[i, j, k] = (value - min_value) / (max_value - min_value);
+                    pointCloud[i, j, k] = (value - minValue) / (maxValue - minValue);
+
+                        
+                    
                 }
             }
+        }
+    }
+
+    static void RescaleValues(float[] noiseValues)
+    {
+        float minValue = float.MaxValue;
+        float maxValue = float.MinValue;
+
+        for (int i = 0; i < noiseValues.Length; i++)
+        {
+            if (noiseValues[i] < minValue) minValue = noiseValues[i];
+            if (noiseValues[i] > maxValue) maxValue = noiseValues[i];
+        }
+
+        // Rescale the values
+        for (int i = 0; i < noiseValues.Length; i++)
+        {
+            noiseValues[i] = (noiseValues[i] - minValue) / (maxValue - minValue);
         }
     }
     public static double Noise(double x, double y, double z)

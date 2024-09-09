@@ -17,7 +17,7 @@ int size;
 
 RWStructuredBuffer<int> p;
 RWStructuredBuffer<float3> octaveOffsets;
-RWStructuredBuffer<float> outputBuffer;
+RWStructuredBuffer<double> outputBuffer;
 
 
 double Fade(double t)
@@ -71,18 +71,18 @@ void GenerateNoise(uint3 id : SV_DispatchThreadID)
     {
         return;
     }
-    float amplitude = 1;
-    float frequency = 1;
-    float noiseValue = 0;
-    float divider = 0;
+    double amplitude = 1;
+    double frequency = 1;
+    double noiseValue = 0;
+    
     for (int i = 0; i < octaves; i++)
     {
-        float val = (float) Noise(id.x / scale * frequency + octaveOffsets[i].x,
+        double val = Noise(id.x / scale * frequency + octaveOffsets[i].x,
                     id.y / scale * frequency + octaveOffsets[i].y,
                     id.z / scale * frequency + octaveOffsets[i].z);
         
         noiseValue += val * amplitude;
-        divider += amplitude;
+        
         amplitude *= persistance;
         frequency *= lacunarity;
     }

@@ -1,5 +1,7 @@
+using System;
 using System.Drawing;
 using UnityEngine;
+using static UnityEngine.Rendering.DebugUI;
 
 public static class PerlinNoiseGPU
 {
@@ -29,18 +31,57 @@ public static class PerlinNoiseGPU
             p[256 + i] = p[i] = permutation[i];
         }
     }
-    
+    static float CalculateValue(float distance, float maxDistance)
+    {
+        if (distance > maxDistance)
+        {
+            return 0f; // Outside the sphere
+        }
+        return 1f - (distance / maxDistance); // Linearly decrease from 1 to 0
+    }
+
+    // Function to flatten 3D indices (x, y, z) into a 1D index for the array
+    static int FlattenIndex(int x, int y, int z, int size)
+    {
+        return z * size * size + y * size + x;
+    }
+    static void FillSphere(float[] array, int size, float radius)
+    {
+        // Calculate the center of the grid
+        float center = (size - 1) / 2.0f;
+
+        // Loop through each point in the 3D grid
+        for (int z = 0; z < size; z++)
+        {
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    // Calculate the distance from the center of the grid
+                    float distance = Vector3.Distance(new Vector3(x, y, z), new Vector3(center, center, center));
+
+                    // Calculate the value based on the distance
+                    float value = CalculateValue(distance, radius);
+
+                    // Fill the value into the flattened array
+                    int index = FlattenIndex(x, y, z, size);
+                    array[index] = value;
+                }
+            }
+        }
+    }
 
     public static void GenerateMesh()
     {
-
+        
+            
         System.Diagnostics.Stopwatch st = new System.Diagnostics.Stopwatch();
         st.Start();
         pBuffer = new ComputeBuffer(512, sizeof(int));
         pBuffer.SetData(p);
         ComputeShader perlinNoiseCompute = GUIValues.instance.P_Compute_Shader;
         
-        outputBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(float));
+        outputBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(double));
         
         Vector3[] octaveOffsets = new Vector3[GUIValues.instance.p_octaves];
         System.Random random = new System.Random(GUIValues.instance.seed);
@@ -68,13 +109,22 @@ public static class PerlinNoiseGPU
 
         perlinNoiseCompute.Dispatch(0, threadGroups, threadGroups, threadGroups);
 
-        float[] noiseValues = new float[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
-        outputBuffer.GetData(noiseValues);
+        double[] pointCloud = new double[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
+        float[] noiseValues=new float[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
+        if (GUIValues.instance.isDebug)
+        {
+            FillSphere(noiseValues, GUIValues.instance.size, (GUIValues.instance.size / 2) - 1);
+        }
+        else
+        {
+            outputBuffer.GetData(pointCloud);
+            noiseValues= Array.ConvertAll(pointCloud, x => (float)x);
+        }
         st.Stop();
         Debug.Log("Multi Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
         RescaleValues(noiseValues);
-        PerlinWorms.GenWorms(noiseValues);
+        //PerlinWorms.GenWorms(noiseValues);
         st.Stop();
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
@@ -98,6 +148,7 @@ public static class PerlinNoiseGPU
 
         for (int i = 0; i < noiseValues.Length; i++)
         {
+            
             if (noiseValues[i] < minValue) minValue = noiseValues[i];
             if (noiseValues[i] > maxValue) maxValue = noiseValues[i];
         }
@@ -106,6 +157,9 @@ public static class PerlinNoiseGPU
         for (int i = 0; i < noiseValues.Length; i++)
         {
             noiseValues[i] = (noiseValues[i] - minValue) / (maxValue - minValue);
+            
+                
+            
         }
     }
     

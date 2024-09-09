@@ -86,6 +86,10 @@ public class GUIValues : MonoBehaviour
     [Tooltip("Cutoff for local maxima Selection for perlinWorms")]
     [Range(0f, 1f)]
     public float maximaCutoff;
+    [Tooltip("falloff multiplier for thickness of tunnel")]
+    public float falloff = 5;
+    [Tooltip("Multiplier for strength of tunnel randomness")]
+    public float tunnelStrength = 5;
     [HideInInspector]
     public static GUIValues instance;
 

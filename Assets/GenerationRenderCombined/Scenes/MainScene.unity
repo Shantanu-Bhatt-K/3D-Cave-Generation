@@ -255,76 +255,7 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
---- !u!1 &1296742818
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1296742820}
-  - component: {fileID: 1296742819}
-  m_Layer: 0
-  m_Name: GUIController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1296742819
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1296742818}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7af54dac0f6a2049a17844c57217916, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  generationType: 2
-  seed: 1387
-  isChunked: 0
-  chunkSize: 5
-  size: 512
-  cutoff: 0.617
-  isDebug: 0
-  meshFilter: {fileID: 1879579384}
-  Chunk: {fileID: 0}
-  P_Compute_Shader: {fileID: 7200000, guid: ac28871966b5995439faf16cdc8e758f, type: 3}
-  W_Compute_Shader: {fileID: 0}
-  PW_Compute_Shader: {fileID: 0}
-  Marching_Cube_Shader: {fileID: 7200000, guid: f933b92007e17074a9c7ae39ae016efa, type: 3}
-  p_scale: 200
-  p_octaves: 5
-  p_persistance: 0.326
-  p_lacunarity: 3
-  w_scale: 1
-  w_octaves: 5
-  w_persistance: 0.7
-  w_lacunarity: 3
-  wormCount: 100
-  wormLength: 200
-  wormRadius: 3
-  maximaCutoff: 0.624
---- !u!4 &1296742820
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1296742818}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!43 &1616169470
+--- !u!43 &781278382
 Mesh:
   m_ObjectHideFlags: 32
   m_CorrespondingSourceObject: {fileID: 0}
@@ -369,9 +300,9 @@ Mesh:
       format: 0
       dimension: 3
     - stream: 0
-      offset: 12
+      offset: 0
       format: 0
-      dimension: 3
+      dimension: 0
     - stream: 0
       offset: 0
       format: 0
@@ -475,8 +406,8 @@ Mesh:
       m_BitSize: 0
     m_UVInfo: 0
   m_LocalAABB:
-    m_Center: {x: 255.5, y: 255.5, z: 255.5}
-    m_Extent: {x: 255.5, y: 255.5, z: 255.5}
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}
   m_MeshUsageFlags: 0
   m_CookingOptions: 30
   m_BakedConvexCollisionMesh: 
@@ -489,6 +420,77 @@ Mesh:
     offset: 0
     size: 0
     path: 
+--- !u!1 &1296742818
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1296742820}
+  - component: {fileID: 1296742819}
+  m_Layer: 0
+  m_Name: GUIController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1296742819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1296742818}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7af54dac0f6a2049a17844c57217916, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  generationType: 2
+  seed: 1543
+  isChunked: 0
+  chunkSize: 5
+  size: 128
+  cutoff: 0.73
+  isDebug: 0
+  meshFilter: {fileID: 1879579384}
+  Chunk: {fileID: 0}
+  P_Compute_Shader: {fileID: 7200000, guid: ac28871966b5995439faf16cdc8e758f, type: 3}
+  W_Compute_Shader: {fileID: 0}
+  PW_Compute_Shader: {fileID: 0}
+  Marching_Cube_Shader: {fileID: 7200000, guid: f933b92007e17074a9c7ae39ae016efa, type: 3}
+  p_scale: 200
+  p_octaves: 3
+  p_persistance: 0.409
+  p_lacunarity: 3
+  w_scale: 200
+  w_octaves: 5
+  w_persistance: 0.783
+  w_lacunarity: 3
+  wormCount: 300
+  wormLength: 200
+  wormRadius: 5
+  maximaCutoff: 0.664
+  falloff: 0.00001
+  tunnelStrength: 1
+--- !u!4 &1296742820
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1296742818}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1754564043
 GameObject:
   m_ObjectHideFlags: 0
@@ -680,7 +682,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1879579382}
-  m_Mesh: {fileID: 1616169470}
+  m_Mesh: {fileID: 781278382}
 --- !u!4 &1879579385
 Transform:
   m_ObjectHideFlags: 0

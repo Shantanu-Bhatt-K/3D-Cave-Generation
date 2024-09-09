@@ -8,6 +8,7 @@ using static UnityEditor.Searcher.SearcherWindow.Alignment;
 public class MarchingCubesSINGLE
 {
     private static List<Triangle> meshTriangles = new List<Triangle>();
+
     public static void GenerateMarchingCubes(float[,,] pointCloud)
     {
         int size = GUIValues.instance.size;

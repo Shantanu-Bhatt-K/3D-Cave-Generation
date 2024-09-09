@@ -3,10 +3,14 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using UnityEngine;
+using static UnityEngine.Mesh;
+using UnityEngine.UIElements;
+using Unity.Mathematics;
 
 
 static public class PerlinWorms 
 {
+    static System.Random random = new System.Random(GUIValues.instance.seed);
     static public List<Vector3Int> directions = new List<Vector3Int>
     {
         new(-1, -1, -1),
@@ -64,8 +68,8 @@ static public class PerlinWorms
         int size = GUIValues.instance.size;
         //find local maximas....
         List<Vector3Int> localMaximas = FindLocalMaxima(pointCloud);
-        localMaximas = localMaximas.Where(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x] >=(GUIValues.instance.maximaCutoff)).OrderBy(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x]).Take(30).ToList();
-        if(GUIValues.instance.isDebug) 
+        localMaximas = localMaximas.Where(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x] >= (GUIValues.instance.maximaCutoff)).OrderBy(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x]).Take(30).ToList();
+        if (GUIValues.instance.isDebug)
         {
             foreach (var pos in localMaximas)
             {
@@ -75,15 +79,144 @@ static public class PerlinWorms
             }
         }
         
-        //create loop for number of worms 
-        //select two local maximas
-        //find direction vector between the two
-        //scale steps based on dist from two points
-        //add the dir vector to the perlin noise dir
-        //slowly increase strength as getting closer to the point
+        Vector3[] octaveOffsets = new Vector3[GUIValues.instance.w_octaves];
+        for (int i = 0; i < GUIValues.instance.w_octaves; i++)
+        {
+            octaveOffsets[i] = new Vector3(
+                (float)random.Next(-100000, 100000),
+                (float)random.Next(-100000, 100000),
+                (float)random.Next(-100000, 100000)
+            );
+        }
 
+        for (int i = 0; i < GUIValues.instance.wormCount; i++)
+        {
+            Vector3 startPosition = localMaximas[random.Next(localMaximas.Count)];
+            Vector3 position = startPosition;
+            Vector3 endPosition = localMaximas
+                .Where(pos => pos != startPosition)     // Exclude startPosition
+                .OrderBy(_ => random.Next())            // Shuffle the remaining positions
+                .First();
+            Vector3 tunnelDir = (endPosition - position).normalized;
+            float distPoint = Mathf.Min((startPosition - position).sqrMagnitude, (endPosition - position).sqrMagnitude);
+            float radiusMultiplier =Mathf.Exp(-GUIValues.instance.falloff*distPoint) ;
+            float radius = GUIValues.instance.wormRadius;
 
+            for (int j = 0; j < GUIValues.instance.wormLength; j++)
+            {
+                float tunnelStrength = (1 / ((endPosition - position).sqrMagnitude + 1));
+
+                EditMeshData(pointCloud, position,radius);
+                Vector3 dir = GetPerlinDirection(position, octaveOffsets) + (tunnelDir * tunnelStrength);
+                tunnelDir = (endPosition - position).normalized;
+                position += dir.normalized * radius;
+                radius = GUIValues.instance.wormRadius * radiusMultiplier;
+                distPoint = Mathf.Min((startPosition - position).sqrMagnitude, (endPosition - position).sqrMagnitude);
+                radiusMultiplier = Mathf.Exp(-GUIValues.instance.falloff * distPoint);
+                Debug.Log(radius+" " + i);
+            }
+        }
     }
+
+        static void EditMeshData(float[] pointCloud, Vector3 position,float radius)
+        {
+            int x = Mathf.RoundToInt(position.x);
+            int y = Mathf.RoundToInt(position.y);
+            int z = Mathf.RoundToInt(position.z);
+            
+            int size = GUIValues.instance.size;
+            for (int i = -Mathf.CeilToInt(radius); i <= Mathf.CeilToInt(radius); i++)
+            {
+                for (int j = -Mathf.CeilToInt(radius); j <= Mathf.CeilToInt(radius); j++)
+                {
+                    for (int k = -Mathf.CeilToInt(radius); k <= Mathf.CeilToInt(radius); k++)
+                    {
+                        int nx = x + i;
+                        int ny = y + j;
+                        int nz = z + k;
+                        int index = size * size * nz + size * ny + nx;
+                        if (nx >= 0 && nx < size && ny >= 0 && ny < size && nz >= 0 && nz < size)
+                        {
+                            Vector3 neighborPos = new Vector3(nx, ny, nz);
+                            if (Vector3.Distance(neighborPos, position) <= radius)
+                            {
+                            pointCloud[index] += 0.05f * pointCloud[index] * (radius - Vector3.Distance(neighborPos, position)) * (1f + (float)(random.NextDouble() * 0.2f - 0.1f));
+                        }
+                        }
+                    }
+                }
+            }
+        }
+    //create loop for number of worms 
+    //select two local maximas
+    //find direction vector between the two
+    //scale steps based on dist from two points
+    //add the dir vector to the perlin noise dir
+    //slowly increase strength as getting closer to the point
+    static Vector3 GetPerlinDirection(Vector3 position, Vector3[] octaveOffsets)
+    {
+        float amplitude = 1f;
+        float frequency = 1f;
+        float angleX = 0, angleY = 0, angleZ = 0;
+        float scale = GUIValues.instance.w_scale;
+        
+        for (int l = 0; l < GUIValues.instance.w_octaves; l++)
+        {
+            float noiseX = (float)Noise((position.x + octaveOffsets[l].x) / scale * frequency, (position.y + octaveOffsets[l].y) / scale * frequency);
+            float noiseY = (float)Noise((position.y + octaveOffsets[l].y) / scale * frequency, (position.z + octaveOffsets[l].z) / scale * frequency);
+            float noiseZ = (float)Noise((position.z + octaveOffsets[l].z) / scale * frequency, (position.x + octaveOffsets[l].x) / scale * frequency);
+
+            angleX += noiseX * amplitude;
+            angleY += noiseY * amplitude;
+            angleZ += noiseZ * amplitude;
+
+            amplitude *= GUIValues.instance.w_persistance;
+            frequency *= GUIValues.instance.w_lacunarity;
+        }
+
+        return new Vector3(angleX, angleY, angleZ).normalized;
+    }
+
+    public static double Noise(double x, double y)
+    {
+        int X = (int)Math.Floor(x) & 255;
+        int Y = (int)Math.Floor(y) & 255;
+
+        x -= Math.Floor(x);
+        y -= Math.Floor(y);
+
+        double u = Fade(x);
+        double v = Fade(y);
+
+        int A = p[X] + Y;
+        int AA = p[A];
+        int AB = p[A + 1];
+        int B = p[X + 1] + Y;
+        int BA = p[B];
+        int BB = p[B + 1];
+
+        return Lerp(v, Lerp(u, Grad(p[AA], x, y), Grad(p[BA], x - 1, y)), Lerp(u, Grad(p[AB], x, y - 1), Grad(p[BB], x - 1, y - 1)));
+    }
+
+    private static double Fade(double t)
+    {
+        return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    private static double Lerp(double t, double a, double b)
+    {
+        return a + t * (b - a);
+    }
+
+    private static double Grad(int hash, double x, double y)
+    {
+        int h = hash & 15;
+        double u = h < 8 ? x : y;
+        double v = h < 4 ? y : x;
+        return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+    }
+
+
 
     public static List<Vector3Int> FindLocalMaxima(float[] pointCloud)
     {

@@ -20,20 +20,20 @@ static const int2 CornerIndices[12] =
 };
 
 // Define the edges as float3 pairs (start and end)
-static const float3 EdgeVertices[12][2] =
+static const int3 EdgeVertices[12][2] =
 {
-    { float3(0.0f, 0.0f, 0.0f), float3(1.0f, 0.0f, 0.0f) },
-    { float3(1.0f, 0.0f, 0.0f), float3(1.0f, 1.0f, 0.0f) },
-    { float3(1.0f, 1.0f, 0.0f), float3(0.0f, 1.0f, 0.0f) },
-    { float3(0.0f, 1.0f, 0.0f), float3(0.0f, 0.0f, 0.0f) },
-    { float3(0.0f, 0.0f, 1.0f), float3(1.0f, 0.0f, 1.0f) },
-    { float3(1.0f, 0.0f, 1.0f), float3(1.0f, 1.0f, 1.0f) },
-    { float3(1.0f, 1.0f, 1.0f), float3(0.0f, 1.0f, 1.0f) },
-    { float3(0.0f, 1.0f, 1.0f), float3(0.0f, 0.0f, 1.0f) },
-    { float3(0.0f, 0.0f, 0.0f), float3(0.0f, 0.0f, 1.0f) },
-    { float3(1.0f, 0.0f, 0.0f), float3(1.0f, 0.0f, 1.0f) },
-    { float3(1.0f, 1.0f, 0.0f), float3(1.0f, 1.0f, 1.0f) },
-    { float3(0.0f, 1.0f, 0.0f), float3(0.0f, 1.0f, 1.0f) }
+    { int3(0, 0, 0), int3(1, 0, 0) },
+    { int3(1, 0, 0), int3(1, 1, 0) },
+    { int3(1, 1, 0), int3(0, 1, 0) },
+    { int3(0, 1, 0), int3(0, 0, 0) },
+    { int3(0, 0, 1), int3(1, 0, 1) },
+    { int3(1, 0, 1), int3(1, 1, 1) },
+    { int3(1, 1, 1), int3(0, 1, 1) },
+    { int3(0, 1, 1), int3(0, 0, 1) },
+    { int3(0, 0, 0), int3(0, 0, 1) },
+    { int3(1, 0, 0), int3(1, 0, 1) },
+    { int3(1, 1, 0), int3(1, 1, 1) },
+    { int3(0, 1, 0), int3(0, 1, 1) }
 };
 static const int TriTable[256][16] =
 {
@@ -308,8 +308,8 @@ cbuffer Constants
 float3 InterpolateVertex(uint3 id, float gridVal[8], int edgeIndex)
 {
     int2 indices = CornerIndices[edgeIndex];
-    float3 p1 = id + EdgeVertices[edgeIndex][0];
-    float3 p2 = id + EdgeVertices[edgeIndex][1];
+    int3 p1 =  id + EdgeVertices[edgeIndex][0];
+    int3 p2 = id + EdgeVertices[edgeIndex][1];
 
     float val1 = gridVal[indices.x];
     float val2 = gridVal[indices.y];
@@ -333,7 +333,8 @@ int GetIndex(int3 coord, int size)
 [numthreads(8, 8, 8)]
 void CSMain(uint3 threadId : SV_DispatchThreadID)
 {
-    int3 id = chunkPos + threadId;
+    
+    int3 id = chunkPos + (int3) threadId;
     if (id.x >= size - 1 || id.y >= size - 1 || id.z >= size - 1)
         return;
 
@@ -348,21 +349,21 @@ void CSMain(uint3 threadId : SV_DispatchThreadID)
 
     // Calculate cube index based on isoLevel
     int cubeIndex = 0;
-    if (gridVal[0] < isoLevel)
+    if (gridVal[0] > isoLevel)
         cubeIndex |= 1;
-    if (gridVal[1] < isoLevel)
+    if (gridVal[1] >isoLevel)
         cubeIndex |= 2;
-    if (gridVal[2] < isoLevel)
+    if (gridVal[2] > isoLevel)
         cubeIndex |= 4;
-    if (gridVal[3] < isoLevel)
+    if (gridVal[3] > isoLevel)
         cubeIndex |= 8;
-    if (gridVal[4] < isoLevel)
+    if (gridVal[4] > isoLevel)
         cubeIndex |= 16;
-    if (gridVal[5] < isoLevel)
+    if (gridVal[5] > isoLevel)
         cubeIndex |= 32;
-    if (gridVal[6] < isoLevel)
+    if (gridVal[6] > isoLevel)
         cubeIndex |= 64;
-    if (gridVal[7] < isoLevel)
+    if (gridVal[7] > isoLevel)
         cubeIndex |= 128;
 
     // Retrieve the triangles from the TriTable
@@ -372,9 +373,9 @@ void CSMain(uint3 threadId : SV_DispatchThreadID)
         if (TriTable[cubeIndex][j] == -1)
             break;
         Triangle tri;
-        tri.vertexC = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j]);
+        tri.vertexA = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j]);
         tri.vertexB = InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 1]);
-        tri.vertexA= InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 2]);
+        tri.vertexC= InterpolateVertex(id, gridVal, TriTable[cubeIndex][j + 2]);
         triangles.Append(tri);
         
         

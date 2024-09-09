@@ -67,6 +67,7 @@ static public class MarchingCubesCompute
         marchingCubesShader.SetFloat("isoLevel", GUIValues.instance.cutoff);
         marchingCubesShader.SetBuffer(kernelHandle, "pointCloud", pointCloudBuffer);
         marchingCubesShader.SetInt("size", gridSize);
+        marchingCubesShader.SetInt("chunksize", chunkSize);
         numVoxels = chunkSize * chunkSize * chunkSize;
         int threadGroups = Mathf.CeilToInt(chunkSize / 8.0f);
         for (int i=0;i<loopCount; i++)
