@@ -68,8 +68,9 @@ static public class PerlinWorms
         int size = GUIValues.instance.size;
         //find local maximas....
         List<Vector3Int> localMaximas = FindLocalMaxima(pointCloud);
+        Debug.Log("LocalMaximasCount "+ localMaximas.Count);
         localMaximas = localMaximas.Where(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x] >= (GUIValues.instance.maximaCutoff)).OrderBy(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x]).Take(30).ToList();
-        if (GUIValues.instance.isDebug)
+        if (GUIValues.instance.wormDebug)
         {
             foreach (var pos in localMaximas)
             {
@@ -83,7 +84,7 @@ static public class PerlinWorms
         for (int i = 0; i < GUIValues.instance.w_octaves; i++)
         {
             octaveOffsets[i] = new Vector3(
-                (float)random.Next(-100000, 100000),
+               (float)random.Next(-100000, 100000),
                 (float)random.Next(-100000, 100000),
                 (float)random.Next(-100000, 100000)
             );
@@ -113,7 +114,7 @@ static public class PerlinWorms
                 radius = GUIValues.instance.wormRadius * radiusMultiplier;
                 distPoint = Mathf.Min((startPosition - position).sqrMagnitude, (endPosition - position).sqrMagnitude);
                 radiusMultiplier = Mathf.Exp(-GUIValues.instance.falloff * distPoint);
-                Debug.Log(radius+" " + i);
+                //Debug.Log(radius+" " + i);
             }
         }
     }

@@ -75,7 +75,7 @@ public static class PerlinNoiseSINGLE
     public static void GenerateMesh()
     {
         float[] noiseValues= new float[GUIValues.instance.size* GUIValues.instance.size* GUIValues.instance.size];
-        if (GUIValues.instance.isDebug)
+        if (GUIValues.instance.marchingDebug)
         {
             FillSphere(noiseValues, GUIValues.instance.size, (GUIValues.instance.size / 2) - 1);
             RescaleValues(noiseValues);

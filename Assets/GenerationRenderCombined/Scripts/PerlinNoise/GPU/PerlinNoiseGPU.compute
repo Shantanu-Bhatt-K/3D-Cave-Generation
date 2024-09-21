@@ -12,12 +12,13 @@ float persistance;
 float lacunarity;
 int seed;
 int size;
+
 // Buffers for data
 // Output texture for noise values
 
 RWStructuredBuffer<int> p;
 RWStructuredBuffer<float3> octaveOffsets;
-RWStructuredBuffer<double> outputBuffer;
+RWStructuredBuffer<float> outputBuffer;
 
 
 double Fade(double t)
@@ -88,7 +89,14 @@ void GenerateNoise(uint3 id : SV_DispatchThreadID)
     }
     
     uint index = id.z * size * size + id.y * size + id.x;
-    outputBuffer[index] = noiseValue;
+    if (id.x == 0 || id.x == size - 1 || id.y == 0 || id.y == size - 1 || id.z == 0 || id.z == size - 1)
+    {
+       
+            outputBuffer[index] = 0;
+    }
+    else
+    
+        outputBuffer[index] = (float) noiseValue;
 
 }
 

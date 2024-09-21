@@ -33,9 +33,12 @@ public class GUIValues : MonoBehaviour
     [Tooltip("Cutoff for Render")]
     [Range(0f, 1f)]
     public float cutoff;
-    [Tooltip("Bool for activating Debugging")]
-    public bool isDebug = false;
-    
+    [Tooltip("Bool for activating perlin worms Debugging")]
+    public bool wormDebug = false;
+    [Tooltip("Bool for activating Marching Cubes Debugging")]
+    public bool marchingDebug = false;
+    [Tooltip("Activate Perlin Worms")]
+    public bool showWorms = false;
     [Tooltip("Marching Cubes Mesh Filter")]
     public MeshFilter meshFilter;
     public GameObject Chunk;
@@ -43,8 +46,7 @@ public class GUIValues : MonoBehaviour
     [Header("ComputeShaders")]
     [Tooltip("The Compute Shader for Perlin Noise Generation")]
     public ComputeShader P_Compute_Shader;
-    [Tooltip("The Compute Shader for Worms Generation")]
-    public ComputeShader W_Compute_Shader;
+    
     [Tooltip("The Compute Shader for Perlin and Worms Generation ")]
     public ComputeShader PW_Compute_Shader;
     [Tooltip("The Compute Shader for Marching Cubes")]
@@ -90,6 +92,8 @@ public class GUIValues : MonoBehaviour
     public float falloff = 5;
     [Tooltip("Multiplier for strength of tunnel randomness")]
     public float tunnelStrength = 5;
+    [Tooltip("Radius Check for Maxima Search(GPU only")]
+    public int maximaRadius=5;
     [HideInInspector]
     public static GUIValues instance;
 

@@ -45,7 +45,7 @@ public static class PerlinNoiseGPU
     {
         return z * size * size + y * size + x;
     }
-    static void FillSphere(double[] array, int size, float radius)
+    static void FillSphere(float[] array, int size, float radius)
     {
         // Calculate the center of the grid
         float center = (size - 1) / 2.0f;
@@ -81,7 +81,7 @@ public static class PerlinNoiseGPU
         pBuffer.SetData(p);
         ComputeShader perlinNoiseCompute = GUIValues.instance.P_Compute_Shader;
         
-        outputBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(double));
+        outputBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(float));
         
         Vector3[] octaveOffsets = new Vector3[GUIValues.instance.p_octaves];
         System.Random random = new System.Random(GUIValues.instance.seed);
@@ -109,11 +109,11 @@ public static class PerlinNoiseGPU
 
         perlinNoiseCompute.Dispatch(0, threadGroups, threadGroups, threadGroups);
 
-        double[] pointCloud = new double[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
+        float[] pointCloud = new float[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
         st.Stop();
         Debug.Log("GPU Generation of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
-        if (GUIValues.instance.isDebug)
+        if (GUIValues.instance.marchingDebug)
         {
             FillSphere(pointCloud, GUIValues.instance.size, (GUIValues.instance.size / 2) - 1);
         }
@@ -125,10 +125,14 @@ public static class PerlinNoiseGPU
         st.Stop();
         Debug.Log("fetching of data took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
+        
         RescaleValues(pointCloud);
-        //PerlinWorms.GenWorms(noiseValues);
+       
+        //PerlinWorms.GenWorms(pointCloud);
         st.Stop();
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
+        if (GUIValues.instance.showWorms)
+            PerlinWormsGPU.GenWorms(pointCloud);
         st.Restart();
         MarchingCubesCompute.GenerateMarchingCubes(pointCloud);
        
@@ -143,10 +147,10 @@ public static class PerlinNoiseGPU
         pBuffer.Release();
     }
 
-    static void RescaleValues(double[] noiseValues)
+    static void RescaleValues(float[] noiseValues)
     {
-        double minValue = double.MaxValue;
-        double maxValue = double.MinValue;
+        float minValue = float.MaxValue;
+        float maxValue = float.MinValue;
 
         for (int i = 0; i < noiseValues.Length; i++)
         {

@@ -1,0 +1,252 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel FindLocalMaxima
+#pragma kernel PerlinWorms
+#define LCG_A 1664525u
+#define LCG_C 1013904223u
+#define LCG_M 0xFFFFFFFFu
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWStructuredBuffer<float> pointCloud;
+RWStructuredBuffer<float3> octaveOffsets;
+AppendStructuredBuffer<int3> localMaximaBuffer;
+RWStructuredBuffer<int3> localMaxima;
+RWStructuredBuffer<int> p;
+
+float cutoff;
+int size;
+float localMaximaRadius;
+float fillRadius;
+float persistance;
+float lacunarity;
+float scale;
+int octaves;
+int seed;
+int maximaCount;
+int wormLength;
+float radiusFalloff;
+
+// Linear Congruential Generator function
+uint LCG(uint previous)
+{
+    
+    return (LCG_A * previous + LCG_C) & LCG_M;
+}
+
+uint RandomRange(uint seed, uint min, uint max)
+{
+    uint randValue = LCG(seed); // Generate the next random number
+    return min + (randValue % (max - min + 1)); // Scale to the range
+}
+
+
+bool CheckLocalMaxima(int3 id)
+{ // Calculate the index and retrieve the noise value for the current point
+    int index = size * size * id.z + size * id.y + id.x;
+    float noiseVal = pointCloud[index];
+    
+    if (noiseVal < cutoff)
+        return false;
+
+    // Cache the value for the center point
+    float centralValue = pointCloud[index];
+
+    // Define the step size for searching neighbors (you can tweak this for performance)
+    int radius = ceil(localMaximaRadius);
+
+    // Search along the principal axes (x, y, z) to reduce comparisons
+    for (int i = -radius; i <= radius; i++)
+    {
+        // Avoid out-of-bounds checks
+        if (i == 0)
+            continue;
+
+        // Check neighbor on the X axis
+        int nx = id.x + i;
+        if (nx >= 0 && nx < size)
+        {
+            int neighborIndex = size * size * id.z + size * id.y + nx;
+            if (pointCloud[neighborIndex] >= centralValue)
+                return false; // Not a local maxima
+        }
+
+        // Check neighbor on the Y axis
+        int ny = id.y + i;
+        if (ny >= 0 && ny < size)
+        {
+            int neighborIndex = size * size * id.z + size * ny + id.x;
+            if (pointCloud[neighborIndex] >= centralValue)
+                return false; // Not a local maxima
+        }
+
+        // Check neighbor on the Z axis
+        int nz = id.z + i;
+        if (nz >= 0 && nz < size)
+        {
+            int neighborIndex = size * size * nz + size * id.y + id.x;
+            if (pointCloud[neighborIndex] >= centralValue)
+                return false; // Not a local maxima
+        }
+    }
+
+    return true; // If no neighbors are larger, it's a local maxima
+}
+
+double Fade(double t)
+{
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+double Lerp(double t, double a, double b)
+{
+    return a + t * (b - a);
+}
+
+double Grad(int hash, double x, double y)
+{
+    int h = hash & 15;
+    double u = h < 8 ? x : y;
+    double v = h < 4 ? y : x;
+    return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+}
+
+double Noise(double x, double y)
+{
+    int X = (int) floor(x) & 255;
+    int Y = (int) floor(y) & 255;
+
+    x -= floor(x);
+    y -= floor(y);
+
+    double u = Fade(x);
+    double v = Fade(y);
+
+    int A = p[X] + Y;
+    int AA = p[A];
+    int AB = p[A + 1];
+    int B = p[X + 1] + Y;
+    int BA = p[B];
+    int BB = p[B + 1];
+
+    return Lerp(v, Lerp(u, Grad(p[AA], x, y), Grad(p[BA], x - 1, y)), Lerp(u, Grad(p[AB], x, y - 1), Grad(p[BB], x - 1, y - 1)));
+}
+
+float3 GetPerlinDirection(int3 position)
+{
+    float3 returnDir = double3(0, 0, 0);
+    double amplitude = 1;
+    double frequency = 1;
+    for (int i = 0; i < octaves; i++)
+    {
+        double noiseX = Noise(position.x + octaveOffsets[i].x / scale * frequency, (position.y + octaveOffsets[i].y) / scale * frequency);
+        double noiseY = Noise(position.y + octaveOffsets[i].y / scale * frequency, (position.z + octaveOffsets[i].z) / scale * frequency);
+        double noiseZ = Noise(position.z + octaveOffsets[i].z / scale * frequency, (position.x + octaveOffsets[i].x) / scale * frequency);
+        returnDir.x += noiseX * amplitude;
+        returnDir.y += noiseY * amplitude;
+        returnDir.z += noiseZ * amplitude;
+        amplitude += persistance;
+        frequency += lacunarity;
+    }
+    
+    return normalize(returnDir);
+    
+    
+        
+}
+
+[numthreads(8,8,8)]
+void FindLocalMaxima (uint3 id : SV_DispatchThreadID)
+{
+    
+    if(CheckLocalMaxima(id.xyz))
+        localMaximaBuffer.Append(id.xyz);
+   
+
+}
+
+void EditMeshData(float3 position,float radius)
+{
+    int x = round(position.x);
+    int y = round(position.y);
+    int z = round(position.z);
+            
+    
+    for (int i = -ceil(radius); i <= ceil(radius);
+    i++)
+    {
+        for (int j = -ceil(radius); j <= ceil(radius); j++)
+        {
+            for (int k = -ceil(radius); k <= ceil(radius); k++)
+            {
+                int nx = x + k;
+                int ny = y + j;
+                int nz = z + i;
+                int index = size * size * nz + size * ny + nx;
+                if (nx >= 0 && nx < size && ny >= 0 && ny < size && nz >= 0 && nz < size)
+                {
+                    float3 neighborPos = float3(nx, ny, nz);
+                    if (distance(neighborPos, position) <= radius)
+                    {
+                        
+                        pointCloud[index] += 0.05f * (radius - distance(neighborPos, position));
+                        
+                        
+                    }
+                }
+                else if (nx == 0 ||  nx == size-1 || ny == 0 || ny == size-1 || nz == 0 || nz == size-1)
+                {
+                    pointCloud[index] = 0;
+                }
+
+            }
+        }
+    }
+}
+
+float dist_squared(float3 vec)
+{
+    return dot(vec, vec);
+}
+
+float dist_squared(float3 a,float3 b)
+{
+    float3 vec = a - b;
+    return dot(vec, vec);
+}
+
+
+[numthreads(8,1,1)]
+void PerlinWorms(uint3 id:SV_DispatchThreadID)
+{
+    
+    uint threadSeed = seed + id.x * 7919u;
+    uint startIndex = RandomRange(threadSeed, 0, maximaCount - 1);
+    
+    uint endIndex = startIndex;
+    while(endIndex==startIndex)
+    {
+        threadSeed = LCG(threadSeed);
+        endIndex = RandomRange(threadSeed, 0, maximaCount - 1);
+        
+    }
+    int3 startPos = localMaxima[startIndex];
+    int3 endPos = localMaxima[endIndex];
+    int3 position = startPos;
+    float3 tunnelDir = normalize(endPos - startPos);
+    float dis = min(dist_squared(startPos - position), dist_squared(endPos - position));
+    double radiusMultiplier = radiusFalloff/ (dis + 1);
+    double radius = fillRadius;
+    for (int i = 0; i < wormLength;i++)
+    {
+        EditMeshData(position,radius);
+        float3 dir = GetPerlinDirection(position)+tunnelDir;
+        
+        position += normalize(dir) * radius;
+        radius = fillRadius+radiusMultiplier;
+        dis = min(dist_squared(startPos - position), dist_squared(endPos - position));
+        radiusMultiplier = radiusFalloff / (dis + 1);
+        
+    }
+
+}
+
+

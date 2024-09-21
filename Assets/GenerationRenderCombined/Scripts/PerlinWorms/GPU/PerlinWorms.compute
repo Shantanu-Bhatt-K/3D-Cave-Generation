@@ -1,0 +1,169 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWStructuredBuffer<float> pointCloud; // Input/output point cloud
+RWStructuredBuffer<int3> localMaxima;
+RWStructuredBuffer<float3> octaveOffsets;
+RWStructuredBuffer<int> p;
+int size;
+int wormCount;
+float radiusFalloff;
+float wormRadius;
+float wormLength;
+int octaves;
+float persistance;
+float lacunarity;
+float scale;
+int seed;
+float cutoff;
+float random(float3 seed, int i)
+{
+    return frac(sin(dot(seed + float3(i, i * 2.0, i * 3.0), float3(12.9898, 78.233, 45.164))) * 43758.5453);
+}
+
+static double Fade(double t)
+{
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+
+static double Lerp(double t, double a, double b)
+{
+    return a + t * (b - a);
+}
+
+
+static double Grad(int hash, double x, double y)
+{
+    int h = hash & 15;
+    double u = h < 8 ? x : y;
+    double v = h < 4 ? y : x;
+    return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+}
+
+static double Noise(double x, double y)
+{
+    int X = (int) floor(x) & 255;
+    int Y = (int) floor(y) & 255;
+
+    x -= floor(x);
+    y -= floor(y);
+
+    double u = Fade(x);
+    double v = Fade(y);
+
+    int A = p[X] + Y;
+    int AA = p[A];
+    int AB = p[A + 1];
+    int B = p[X + 1] + Y;
+    int BA = p[B];
+    int BB = p[B + 1];
+
+    return Lerp(v, Lerp(u, Grad(p[AA], x, y), Grad(p[BA], x - 1, y)), Lerp(u, Grad(p[AB], x, y - 1), Grad(p[BB], x - 1, y - 1)));
+}
+
+float3 GetPerlinDirection(float3 position)
+{
+    float amplitude = 1.0;
+    float frequency = 1.0;
+    float angleX = 0, angleY = 0, angleZ = 0;
+
+    for (int l = 0; l < octaves; l++)
+    {
+        
+        double noiseX =  Noise((position.x + octaveOffsets[l].x) / scale * frequency, (position.y + octaveOffsets[l].y) / scale * frequency);
+        double noiseY = Noise((position.y + octaveOffsets[l].y) / scale * frequency, (position.z + octaveOffsets[l].z) / scale * frequency);
+        double noiseZ = Noise((position.z + octaveOffsets[l].z) / scale * frequency, (position.x + octaveOffsets[l].x) / scale * frequency);
+
+        angleX += noiseX * amplitude;
+        angleY += noiseY * amplitude;
+        angleZ += noiseZ * amplitude;
+
+        amplitude *= persistance;
+        frequency *= lacunarity;
+    }
+
+    return normalize(float3(angleX, angleY, angleZ));
+}
+
+double distance_squared(float3 a,float3 b)
+{
+    float3 vec = b - a;
+    return dot(vec, vec);
+}
+
+void EditMeshData( float3 position, double radius, int threadSeed)
+{
+    int x = round(position.x);
+    
+    int y = round(position.y);
+    int z = round(position.z);
+            
+    
+    for (int i = -ceil(radius); i <= ceil(radius); i++)
+    {
+        for (int j = -ceil(radius); j <= ceil(radius); j++)
+        {
+            for (int k = -ceil(radius); k <=ceil(radius); k++)
+            {
+                int nx = x + i;
+                int ny = y + j;
+                int nz = z + k;
+                int index = size * size * nz + size * ny + nx;
+                if (nx >= 0 && nx < size && ny >= 0 && ny < size && nz >= 0 && nz < size)
+                {
+                    float3 neighborPos = float3(nx, ny, nz);
+                    if (distance(neighborPos, position) <= radius)
+                    {
+                        pointCloud[index] +=1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+[numthreads(8,1,1)] 
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x>=wormCount)
+        return;
+        
+    float threadSeed = seed;
+    //int startIndex = random(id.xyz,threadSeed++);
+    //int endIndex= random(id.xyz, threadSeed++);
+    //int maxAttempts = 100;
+    //int attempts = 0;
+
+    //while(endIndex==startIndex && attempts <maxAttempts)
+    //{
+    //    endIndex = random(id.xyz, threadSeed++);
+    //    attempts++;
+
+    //}
+       
+    //float3 startPosition = localMaxima[startIndex];
+    //float3 position = startPosition;
+    //float3 endPosition = localMaxima[endIndex];
+    //float3 tunnelDir = normalize(endPosition - position);
+    ////double distPoint = min(distance_squared(startPosition,position), distance_squared(endPosition,position));
+    ////double radiusMultiplier = exp((double) -radiusFalloff * distPoint);
+    //double radius = wormRadius;
+    
+    //for (int j = 0; j < wormLength; j++)
+    //{
+    //    //double tunnelStrength = (1 / (distance_squared(endPosition,position)+ 1));
+
+    //    EditMeshData(position, radius,threadSeed);
+    //    float3 dir = GetPerlinDirection(position)  /*(tunnelDir * tunnelStrength)*/;
+    //    //tunnelDir = normalize(endPosition - position);
+    //    position += normalize(dir) * radius;
+    //    radius = wormRadius/* * radiusMultiplier*/;
+    //    //distPoint = min(distance_squared(startPosition, position), distance_squared(endPosition ,position));
+    //    //radiusMultiplier =exp(-radiusFalloff * distPoint);
+               
+    //}
+}
