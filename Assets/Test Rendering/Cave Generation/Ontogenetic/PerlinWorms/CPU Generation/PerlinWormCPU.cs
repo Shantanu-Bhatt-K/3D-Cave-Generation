@@ -78,7 +78,7 @@ public static class PerlinWormCPU
                         Vector3 neighborPos = new Vector3(nx, ny, nz);
                         if (Vector3.Distance(neighborPos, position) <= radius)
                         {
-                            mesh_data[nx, ny, nz] += 0.05f *mesh_data[nx,ny,nz]* (radius - Vector3.Distance(neighborPos, position));
+                            mesh_data[nx, ny, nz] = 1;
                         }
                     }
                 }

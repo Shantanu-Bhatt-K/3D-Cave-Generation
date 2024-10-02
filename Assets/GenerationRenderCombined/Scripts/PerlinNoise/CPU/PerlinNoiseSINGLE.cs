@@ -8,10 +8,11 @@ using System.Collections.Generic;
 using UnityEngine.UIElements;
 using NUnit.Framework.Internal;
 
+
 public static class PerlinNoiseSINGLE 
 {
 
-    
+    //permutation values to fill the permutation table for perlin noise gradient calculation
     static readonly int[] permutation = {
         151,160,137,91,90,15, 131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
         190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33, 88,237,149,56,87,174,20,
@@ -33,40 +34,38 @@ public static class PerlinNoiseSINGLE
             p[256 + i] = p[i] = permutation[i];
         }
     }
+
+    //reduce value as the radius from the centre increases
     static float CalculateValue(float distance, float maxDistance)
     {
         if (distance > maxDistance)
         {
-            return 0f; // Outside the sphere
+            return 0f;
         }
-        return 1f - (distance / maxDistance); // Linearly decrease from 1 to 0
+        return 1f - (distance / maxDistance); 
     }
 
-    // Function to flatten 3D indices (x, y, z) into a 1D index for the array
-    static int FlattenIndex(int x, int y, int z, int size)
-    {
-        return z * size * size + y * size + x;
-    }
+    //used to test marching cubes algorithm by using it to generate a sphere
     static void FillSphere(float[] array, int size, float radius)
     {
-        // Calculate the center of the grid
+        
         float center = (size - 1) / 2.0f;
 
-        // Loop through each point in the 3D grid
+        
         for (int z = 0; z < size; z++)
         {
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    // Calculate the distance from the center of the grid
+                    
                     float distance = Vector3.Distance(new Vector3(x, y, z), new Vector3(center, center, center));
 
-                    // Calculate the value based on the distance
+                   
                     float value = CalculateValue(distance, radius);
 
-                    // Fill the value into the flattened array
-                    int index = FlattenIndex(x, y, z, size);
+                    
+                    int index = z * size * size + y * size + x;
                     array[index] = value;
                 }
             }
@@ -75,6 +74,8 @@ public static class PerlinNoiseSINGLE
     public static void GenerateMesh()
     {
         float[] noiseValues= new float[GUIValues.instance.size* GUIValues.instance.size* GUIValues.instance.size];
+        
+        //Debug statement for marching cubes test
         if (GUIValues.instance.marchingDebug)
         {
             FillSphere(noiseValues, GUIValues.instance.size, (GUIValues.instance.size / 2) - 1);
@@ -90,6 +91,7 @@ public static class PerlinNoiseSINGLE
             st.Start();
             System.Random random = new System.Random(GUIValues.instance.seed);
             Vector3[] octaveOffsets = new Vector3[GUIValues.instance.p_octaves];
+            //Calculation of octave offsets
             for (int i = 0; i < GUIValues.instance.p_octaves; i++)
             {
                 octaveOffsets[i].x = random.Next(-100000, 100000);
@@ -97,8 +99,10 @@ public static class PerlinNoiseSINGLE
                 octaveOffsets[i].z = random.Next(-100000, 100000);
             }
             int size = GUIValues.instance.size;
-            float[,,] pointCloud = new float[size, size, size];
-           
+            float[] pointCloud = new float[size* size* size];
+
+            //implementation of fractional brownian motion by sebastian lague
+            //Source https://www.youtube.com/watch?v=MRNFcywkUSA
             for (int k = 0; k < size; k++)
             {
                 for (int j = 0; j < size; j++)
@@ -107,16 +111,20 @@ public static class PerlinNoiseSINGLE
                     {
                         float amplitude = 1f;
                         float frequency = 1f;
-
+                        int index= k*size*size+ j*size+i;
                         for (int l = 0; l < GUIValues.instance.p_octaves; l++)
                         {
                             float val = (float)Noise(i / GUIValues.instance.p_scale * frequency + octaveOffsets[l].x, j / GUIValues.instance.p_scale * frequency + octaveOffsets[l].y, k / GUIValues.instance.p_scale * frequency + octaveOffsets[l].z);
-                            pointCloud[i, j, k] += val * amplitude;
+                            pointCloud[index] += val * amplitude;
 
                             amplitude *= GUIValues.instance.p_persistance;
                             frequency *= GUIValues.instance.p_lacunarity;
                         }
-                       
+                        if (i == 0 || i == size - 1 || j == 0 || j == size - 1 || k == 0 || k == size - 1)
+                        {
+                            pointCloud[index] = 0;
+                        }
+
 
                     }
                 }
@@ -130,6 +138,11 @@ public static class PerlinNoiseSINGLE
             st.Stop();
             Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
             st.Restart();
+            if (GUIValues.instance.showWorms)
+                PerlinWorms.GenWorms(pointCloud);
+            st.Stop();
+            Debug.Log("Perlin Worms Took" + st.ElapsedMilliseconds + " milliseconds");
+            st.Restart();
             MarchingCubesSINGLE.GenerateMarchingCubes(pointCloud);
             st.Stop();
             Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
@@ -138,7 +151,7 @@ public static class PerlinNoiseSINGLE
         
     }
 
-
+    //calculation and rescaling of values in the grid
     static public void RescaleValues(float[,,] pointCloud)
     {
         int size = GUIValues.instance.size; // Cache the size value
@@ -157,7 +170,7 @@ public static class PerlinNoiseSINGLE
             }
         }
 
-                    for (int k = 0; k < size; k++)
+        for (int k = 0; k < size; k++)
         {
             for (int j = 0; j < size; j++)
             {
@@ -165,9 +178,6 @@ public static class PerlinNoiseSINGLE
                 {
                     float value = pointCloud[i, j, k];
                     pointCloud[i, j, k] = (value - minValue) / (maxValue - minValue);
-
-                        
-                    
                 }
             }
         }
@@ -190,6 +200,9 @@ public static class PerlinNoiseSINGLE
             noiseValues[i] = (noiseValues[i] - minValue) / (maxValue - minValue);
         }
     }
+
+    // This implementation uses Perlin's implementation of Perlin Noise
+    //Source https://cs.nyu.edu/~perlin/noise/
     public static double Noise(double x, double y, double z)
     {
         int X = (int)Math.Floor(x) & 255;
@@ -214,6 +227,7 @@ public static class PerlinNoiseSINGLE
         return Lerp(w, Lerp(v, Lerp(u, Grad(p[AA], x, y, z), Grad(p[BA], x - 1, y, z)), Lerp(u, Grad(p[AB], x, y - 1, z), Grad(p[BB], x - 1, y - 1, z))), Lerp(v, Lerp(u, Grad(p[AA + 1], x, y, z - 1), Grad(p[BA + 1], x - 1, y, z - 1)), Lerp(u, Grad(p[AB + 1], x, y - 1, z - 1), Grad(p[BB + 1], x - 1, y - 1, z - 1))));
     }
 
+    //interpolation function
     private static double Fade(double t)
     {
         return t * t * t * (t * (t * 6 - 15) + 10);
@@ -224,6 +238,7 @@ public static class PerlinNoiseSINGLE
         return a + t * (b - a);
     }
 
+    //gradient calculation function
     private static double Grad(int hash, double x, double y, double z)
     {
         int h = hash & 15;

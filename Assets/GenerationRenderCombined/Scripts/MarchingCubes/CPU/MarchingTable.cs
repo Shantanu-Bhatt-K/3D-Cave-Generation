@@ -1,7 +1,10 @@
 using UnityEngine;
 
+//marching table is referenced from Stecker
+//source https://github.com/Freedom-Coding/Marching-cubes
 public class MarchingTable 
 {
+    
     public static Vector3Int[] Corners = new Vector3Int[8] {
 
         new Vector3Int(0, 0, 0),

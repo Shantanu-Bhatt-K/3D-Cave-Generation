@@ -1,8 +1,7 @@
-// Each #kernel tells which function to compile; you can have many kernels
+//Setup of kernel
 #pragma kernel GenerateNoise
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
+//Initialize data required for the compute shader
 RWStructuredBuffer<float> Result;
 int width;
 int height;
@@ -58,10 +57,11 @@ double Noise(double x, double y, double z)
     return Lerp(w, Lerp(v, Lerp(u, Grad(p[AA], x, y, z), Grad(p[BA], x - 1, y, z)), Lerp(u, Grad(p[AB], x, y - 1, z), Grad(p[BB], x - 1, y - 1, z))), Lerp(v, Lerp(u, Grad(p[AA + 1], x, y, z - 1), Grad(p[BA + 1], x - 1, y, z - 1)), Lerp(u, Grad(p[AB + 1], x, y - 1, z - 1), Grad(p[BB + 1], x - 1, y - 1, z - 1))));
 }
 
-
+//declare number of threads for  the GPU
 [numthreads(8,8,8)]
 void GenerateNoise (uint3 id : SV_DispatchThreadID)
 {
+    //check if the id is out of bounds
     if (id.x > width - 1 || id.y > height - 1  || id.z>depth-1)
     {
         return;

@@ -40,23 +40,23 @@ uint RandomRange(uint seed, uint min, uint max)
 
 
 bool CheckLocalMaxima(int3 id)
-{ // Calculate the index and retrieve the noise value for the current point
+{ 
     int index = size * size * id.z + size * id.y + id.x;
     float noiseVal = pointCloud[index];
     
     if (noiseVal < cutoff)
         return false;
 
-    // Cache the value for the center point
+    
     float centralValue = pointCloud[index];
 
     // Define the step size for searching neighbors (you can tweak this for performance)
     int radius = ceil(localMaximaRadius);
 
-    // Search along the principal axes (x, y, z) to reduce comparisons
+    // Search along the principal axes (x, y, z). modified from original local maxima search to have more consistent local maxima
     for (int i = -radius; i <= radius; i++)
     {
-        // Avoid out-of-bounds checks
+        
         if (i == 0)
             continue;
 
@@ -191,11 +191,12 @@ void EditMeshData(float3 position,float radius)
                         
                         
                     }
+                    if (nx == 0 || nx == size - 1 || ny == 0 || ny == size - 1 || nz == 0 || nz == size - 1)
+                    {
+                        pointCloud[index] = 0;
+                    }
                 }
-                else if (nx == 0 ||  nx == size-1 || ny == 0 || ny == size-1 || nz == 0 || nz == size-1)
-                {
-                    pointCloud[index] = 0;
-                }
+                
 
             }
         }

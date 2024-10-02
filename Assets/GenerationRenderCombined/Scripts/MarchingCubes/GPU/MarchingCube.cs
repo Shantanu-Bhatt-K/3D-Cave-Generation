@@ -56,9 +56,12 @@ static public class MarchingCubesCompute
         
         
         gridSize = GUIValues.instance.size;
+        //calculate chunk size based on user input
         int chunkSize = (int)Mathf.Pow(2, GUIValues.instance.chunkSize);
-        int loopCount=Mathf.CeilToInt(gridSize/chunkSize);
 
+        //calcluate loop count per size
+        int loopCount=Mathf.CeilToInt(gridSize/chunkSize);
+        //set the chunk independent values to the compute shader
         pointCloudBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(float));
         pointCloudBuffer.SetData(pointCloudData);
         ComputeShader marchingCubesShader = GUIValues.instance.Marching_Cube_Shader;
@@ -70,14 +73,17 @@ static public class MarchingCubesCompute
         marchingCubesShader.SetInt("chunksize", chunkSize);
         numVoxels = chunkSize * chunkSize * chunkSize;
         int threadGroups = Mathf.CeilToInt(chunkSize / 8.0f);
+        //loop through all of the chunks
         for (int i=0;i<loopCount; i++)
         {
             for(int j=0;j<loopCount;j++)
             {
                 for (int k=0;k<loopCount;k++)
                 {
+                    //set the chunk starting position
                     int[] pos = { i*chunkSize, j*chunkSize, k * chunkSize };
                     marchingCubesShader.SetInts("chunkPos",pos);
+                    //create a buffer to store all the triangles. it is set to numvoxels*5 to account for multiple triangles per cube
                     trianglesBuffer = new ComputeBuffer(numVoxels * 5, sizeof(float) * 3 * 3, ComputeBufferType.Append);
                     trianglesBuffer.SetCounterValue(0);
                     marchingCubesShader.SetBuffer(kernelHandle, "triangles", trianglesBuffer);
@@ -85,6 +91,7 @@ static public class MarchingCubesCompute
                     int triangleCount = GetBufferCount(trianglesBuffer);
                     Triangle[] ChunkTriangles = new Triangle[triangleCount];
                     trianglesBuffer.GetData(ChunkTriangles);
+                    //add chunk triangles to the list of mesh triangles
                     for(int a=0;a<triangleCount;a++)
                     {
                         meshTriangles.Add(ChunkTriangles[a]);
@@ -123,6 +130,7 @@ static public class MarchingCubesCompute
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
         GUIValues.instance.meshFilter.sharedMesh = mesh;
+        //GUIValues.instance.meshCollider.sharedMesh = mesh;
         ClearBuffer();
     }
 
@@ -133,13 +141,13 @@ static public class MarchingCubesCompute
         
         if (trianglesBuffer != null) trianglesBuffer.Release();
         meshTriangles.Clear();
-        // Remove SceneView callback after rendering is done in Edit mode
+        
 
     }
 
     static private int GetBufferCount(ComputeBuffer buffer)
     {
-        // Create a temporary buffer to read the count
+        
         ComputeBuffer countBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
         ComputeBuffer.CopyCount(buffer, countBuffer, 0);
         int[] countArray = { 0 };

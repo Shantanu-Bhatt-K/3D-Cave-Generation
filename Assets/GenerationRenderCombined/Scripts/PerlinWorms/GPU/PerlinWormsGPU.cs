@@ -34,29 +34,42 @@ public static class PerlinWormsGPU
        
         Stopwatch stopwatch = new Stopwatch();
         stopwatch.Start();
+        //referennce compute shader from GUIValues 
         ComputeShader perlinWormShader = GUIValues.instance.PW_Compute_Shader;
+        
+        //setup kernels
         int localMaximaHandle = perlinWormShader.FindKernel("FindLocalMaxima");
         int perlinWormsHandle = perlinWormShader.FindKernel("PerlinWorms");
-
+        //set up buffer for sending point cloud data
         ComputeBuffer pointCloudBuffer=new ComputeBuffer(pointCloud.Length,sizeof(float));
         pointCloudBuffer.SetData(pointCloud);
+        
+        //set up buffer for output of local maxima list
         ComputeBuffer localMaximaBuffer = new ComputeBuffer(pointCloud.Length / GUIValues.instance.maximaRadius, sizeof(int) * 3,ComputeBufferType.Append);
         localMaximaBuffer.SetCounterValue(0);
+
+        //send buffers to compute shader
         perlinWormShader.SetBuffer(localMaximaHandle, "pointCloud", pointCloudBuffer);
         perlinWormShader.SetBuffer(localMaximaHandle, "localMaximaBuffer", localMaximaBuffer);
         perlinWormShader.SetFloat("cutoff", GUIValues.instance.cutoff);
         perlinWormShader.SetInt("size",GUIValues.instance.size);
         perlinWormShader.SetFloat("localMaximaRadius", GUIValues.instance.maximaRadius);
+        
+        //calculate thread groups for compute shader and dispatch
         int threadGroups = Mathf.CeilToInt(GUIValues.instance.size / 8.0f);
         perlinWormShader.Dispatch(localMaximaHandle,threadGroups, threadGroups, threadGroups);
-        int localMaximaCount=GetBufferCount(localMaximaBuffer);
+        // get buffer count from GPU
+        // source https://discussions.unity.com/t/appendstructuredbuffer-count-is-the-same-as-allocated-amount-for-the-mirroring-computebuffer-while-i-append-less-times/257627
+        int localMaximaCount =GetBufferCount(localMaximaBuffer);
         UnityEngine.Debug.Log(localMaximaCount);
         Vector3Int[] localMaxima= new Vector3Int[localMaximaCount];
+        
+        //fetch data from buffer
         localMaximaBuffer.GetData(localMaxima);
         stopwatch.Stop();
         UnityEngine.Debug.Log("localMaximaSearch took " + stopwatch.ElapsedMilliseconds + " milliseconds");
 
-
+        //set local maxima for perlin worms kernel
         ComputeBuffer localMaximaStructured = new ComputeBuffer(localMaximaCount, sizeof(int) * 3);
         localMaximaStructured.SetData(localMaxima);
 
@@ -74,7 +87,7 @@ public static class PerlinWormsGPU
         }
         ComputeBuffer octaveOffsetsBuffer = new ComputeBuffer(GUIValues.instance.w_octaves, sizeof(float) * 3);
         octaveOffsetsBuffer.SetData(octaveOffsets);
-
+        //set data for perlin worms kernel
         perlinWormShader.SetBuffer(perlinWormsHandle, "localMaxima", localMaximaStructured);
         perlinWormShader.SetBuffer(perlinWormsHandle, "octaveOffsets", octaveOffsetsBuffer);
         perlinWormShader.SetBuffer(perlinWormsHandle, "p", permutationBuffer);
@@ -91,10 +104,12 @@ public static class PerlinWormsGPU
         perlinWormShader.SetFloat("radiusFalloff",GUIValues.instance.falloff);
 
         threadGroups = Mathf.CeilToInt(GUIValues.instance.wormCount / 8);
-
+        //dispatch perlin worms kernel
         perlinWormShader.Dispatch(perlinWormsHandle, threadGroups, 1, 1);
-
+        // fetch point cloud data from buffer
         pointCloudBuffer.GetData(pointCloud);
+
+        //realease buffers.
         localMaximaBuffer.Release();
         pointCloudBuffer.Release();
         localMaximaStructured.Release();

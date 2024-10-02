@@ -31,6 +31,8 @@ public static class PerlinNoiseGPU
             p[256 + i] = p[i] = permutation[i];
         }
     }
+
+    //debug for GPU marching cubes
     static float CalculateValue(float distance, float maxDistance)
     {
         if (distance > maxDistance)
@@ -41,30 +43,27 @@ public static class PerlinNoiseGPU
     }
 
     // Function to flatten 3D indices (x, y, z) into a 1D index for the array
-    static int FlattenIndex(int x, int y, int z, int size)
-    {
-        return z * size * size + y * size + x;
-    }
+   
     static void FillSphere(float[] array, int size, float radius)
     {
-        // Calculate the center of the grid
+        
         float center = (size - 1) / 2.0f;
 
-        // Loop through each point in the 3D grid
+        
         for (int z = 0; z < size; z++)
         {
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    // Calculate the distance from the center of the grid
+                    
                     float distance = Vector3.Distance(new Vector3(x, y, z), new Vector3(center, center, center));
 
-                    // Calculate the value based on the distance
+                    
                     float value = CalculateValue(distance, radius);
 
-                    // Fill the value into the flattened array
-                    int index = FlattenIndex(x, y, z, size);
+                    
+                    int index = z * size * size + y * size + x;
                     array[index] = value;
                 }
             }
@@ -77,12 +76,18 @@ public static class PerlinNoiseGPU
             
         System.Diagnostics.Stopwatch st = new System.Diagnostics.Stopwatch();
         st.Start();
+
+        //set buffer for permutation array
         pBuffer = new ComputeBuffer(512, sizeof(int));
         pBuffer.SetData(p);
+
+        
         ComputeShader perlinNoiseCompute = GUIValues.instance.P_Compute_Shader;
         
+        //set up buffer for the output from compute shader
         outputBuffer = new ComputeBuffer(GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size, sizeof(float));
         
+        //octave offsets set on the CPU to have consistent offsets betweeen CPU and GPU implementation
         Vector3[] octaveOffsets = new Vector3[GUIValues.instance.p_octaves];
         System.Random random = new System.Random(GUIValues.instance.seed);
         for (int i = 0; i < GUIValues.instance.p_octaves; i++)
@@ -91,9 +96,10 @@ public static class PerlinNoiseGPU
             octaveOffsets[i].y = random.Next(-100000, 100000);
             octaveOffsets[i].z = random.Next(-100000, 100000);
         }
+        //setup octave offset buffer
         octaveOffsetBuffer = new ComputeBuffer(GUIValues.instance.p_octaves, 3 * sizeof(float));
         octaveOffsetBuffer.SetData(octaveOffsets);
-        
+        //Set data for the compute shader
         perlinNoiseCompute.SetInt("size", GUIValues.instance.size);
         perlinNoiseCompute.SetFloat("scale", GUIValues.instance.p_scale);
         perlinNoiseCompute.SetInt("octaves", GUIValues.instance.p_octaves);
@@ -104,9 +110,9 @@ public static class PerlinNoiseGPU
         perlinNoiseCompute.SetBuffer(0, "p", pBuffer);
         perlinNoiseCompute.SetBuffer(0, "outputBuffer", outputBuffer);
         
-        
+        //calculate thread groups required on the GPU
         int threadGroups = Mathf.CeilToInt(GUIValues.instance.size / 8.0f);
-
+        //dispatch the compute shader
         perlinNoiseCompute.Dispatch(0, threadGroups, threadGroups, threadGroups);
 
         float[] pointCloud = new float[GUIValues.instance.size * GUIValues.instance.size * GUIValues.instance.size];
@@ -119,20 +125,24 @@ public static class PerlinNoiseGPU
         }
         else
         {
+            //fetch data from the GPU
             outputBuffer.GetData(pointCloud);
            
         }
         st.Stop();
         Debug.Log("fetching of data took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
-        
+
         RescaleValues(pointCloud);
-       
-        //PerlinWorms.GenWorms(pointCloud);
         st.Stop();
+        
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
+        st.Restart();
         if (GUIValues.instance.showWorms)
             PerlinWormsGPU.GenWorms(pointCloud);
+        st.Stop();
+        Debug.Log("Perlin Worms Took" + st.ElapsedMilliseconds + " milliseconds");
+        
         st.Restart();
         MarchingCubesCompute.GenerateMarchingCubes(pointCloud);
        

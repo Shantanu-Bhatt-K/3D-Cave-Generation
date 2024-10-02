@@ -6,15 +6,10 @@ using UnityEngine.UIElements;
 
 public enum GenerationType
 {
-    Perlin_CPU_Single_Thread,
-    Perlin_CPU_Multi_Thread,
-    Perlin_GPU,
-    Worms_CPU_Single_Thread,
-    Worms_CPU_Multi_Thread,
-    Worms_GPU,
-    Perlin_Worms_CPU_Single_Thread,
-    Perlin_Worms_CPU_Multi_Thread,
-    Perlin_Worms_GPU,
+   CPU_Single_Thread,
+   CPU_Multi_Thread,
+   GPU,
+   
 }
 public class GUIValues : MonoBehaviour
 {
@@ -23,11 +18,9 @@ public class GUIValues : MonoBehaviour
     public GenerationType generationType;
     [Tooltip("Set the seed of the build")]
     public int seed;
-    [Tooltip("Set if the render should be chunked")]
-    public bool isChunked = false;
-    [Tooltip("Sets the render to be in chunks of size 2^n")]
-    [Range(0,8)]
-    public int chunkSize = 2;
+    [Tooltip("Sets the GPU render to be in chunks of size 2^n")]
+    [Range(3,7)]
+    public int chunkSize = 5;
     [Tooltip("Size of Render")]
     public int size;
     [Tooltip("Cutoff for Render")]
@@ -41,7 +34,7 @@ public class GUIValues : MonoBehaviour
     public bool showWorms = false;
     [Tooltip("Marching Cubes Mesh Filter")]
     public MeshFilter meshFilter;
-    public GameObject Chunk;
+    
     
     [Header("ComputeShaders")]
     [Tooltip("The Compute Shader for Perlin Noise Generation")]
@@ -102,7 +95,7 @@ public class GUIValues : MonoBehaviour
         if (instance == null) 
             instance = this;
     }
-
+    // Called by the editor to generate the mesh
     public void GenerateMap()
     {
         System.Diagnostics.Stopwatch st = new System.Diagnostics.Stopwatch();
@@ -112,13 +105,13 @@ public class GUIValues : MonoBehaviour
         switch (generationType)
         {
             
-            case GenerationType.Perlin_CPU_Single_Thread:
+            case GenerationType.CPU_Single_Thread:
                 PerlinNoiseSINGLE.GenerateMesh();
                 break;
-            case GenerationType.Perlin_CPU_Multi_Thread:
+            case GenerationType.CPU_Multi_Thread:
                 PerlinNoiseMULTI.GenerateMesh();
                 break;
-            case GenerationType.Perlin_GPU:
+            case GenerationType.GPU:
                 PerlinNoiseGPU.GenerateMesh();
                 break;
             default:
@@ -129,6 +122,7 @@ public class GUIValues : MonoBehaviour
         UnityEngine.Debug.Log(string.Format("Render took {0} seconds", st.ElapsedMilliseconds));
     }
 
+    //Used to clear out the rendered mesh
     public void ClearWindow()
     {
         meshFilter.GetComponent<MeshFilter>().sharedMesh.Clear();

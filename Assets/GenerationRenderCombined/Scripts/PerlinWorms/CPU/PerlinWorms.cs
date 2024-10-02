@@ -11,6 +11,7 @@ using Unity.Mathematics;
 static public class PerlinWorms 
 {
     static System.Random random = new System.Random(GUIValues.instance.seed);
+    //directions for checking of local maxima
     static public List<Vector3Int> directions = new List<Vector3Int>
     {
         new(-1, -1, -1),
@@ -63,13 +64,16 @@ static public class PerlinWorms
             p[256 + i] = p[i] = permutation[i];
         }
     }
+   
     static public void GenWorms(float[] pointCloud)
     {
         int size = GUIValues.instance.size;
         //find local maximas....
         List<Vector3Int> localMaximas = FindLocalMaxima(pointCloud);
         Debug.Log("LocalMaximasCount "+ localMaximas.Count);
-        localMaximas = localMaximas.Where(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x] >= (GUIValues.instance.maximaCutoff)).OrderBy(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x]).Take(30).ToList();
+        //filter and select local maxima
+        localMaximas = localMaximas.Where(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x] >= (GUIValues.instance.maximaCutoff)).OrderBy(pos => pointCloud[size * size * pos.z + size * pos.y + pos.x]).Take(150).ToList();
+        //debug to check maxima locations
         if (GUIValues.instance.wormDebug)
         {
             foreach (var pos in localMaximas)
@@ -89,36 +93,40 @@ static public class PerlinWorms
                 (float)random.Next(-100000, 100000)
             );
         }
-
+        //loop over each worm
         for (int i = 0; i < GUIValues.instance.wormCount; i++)
         {
+            //select start and end position
             Vector3 startPosition = localMaximas[random.Next(localMaximas.Count)];
             Vector3 position = startPosition;
             Vector3 endPosition = localMaximas
                 .Where(pos => pos != startPosition)     // Exclude startPosition
                 .OrderBy(_ => random.Next())            // Shuffle the remaining positions
                 .First();
+            //calculate bias direction
             Vector3 tunnelDir = (endPosition - position).normalized;
+            //calculate radius based on distance of current position
             float distPoint = Mathf.Min((startPosition - position).sqrMagnitude, (endPosition - position).sqrMagnitude);
-            float radiusMultiplier =Mathf.Exp(-GUIValues.instance.falloff*distPoint) ;
+            float radiusMultiplier =GUIValues.instance.falloff/(distPoint+1) ;
             float radius = GUIValues.instance.wormRadius;
 
+            //loop over length of worm
             for (int j = 0; j < GUIValues.instance.wormLength; j++)
             {
-                float tunnelStrength = (1 / ((endPosition - position).sqrMagnitude + 1));
+                
 
                 EditMeshData(pointCloud, position,radius);
-                Vector3 dir = GetPerlinDirection(position, octaveOffsets) + (tunnelDir * tunnelStrength);
-                tunnelDir = (endPosition - position).normalized;
+                Vector3 dir = GetPerlinDirection(position, octaveOffsets) + tunnelDir;
+                
                 position += dir.normalized * radius;
-                radius = GUIValues.instance.wormRadius * radiusMultiplier;
+                radius = GUIValues.instance.wormRadius + radiusMultiplier;
                 distPoint = Mathf.Min((startPosition - position).sqrMagnitude, (endPosition - position).sqrMagnitude);
-                radiusMultiplier = Mathf.Exp(-GUIValues.instance.falloff * distPoint);
+                radiusMultiplier = GUIValues.instance.falloff /(distPoint+1);
                 //Debug.Log(radius+" " + i);
             }
         }
     }
-
+        //fill mesh around current position
         static void EditMeshData(float[] pointCloud, Vector3 position,float radius)
         {
             int x = Mathf.RoundToInt(position.x);
@@ -141,19 +149,18 @@ static public class PerlinWorms
                             Vector3 neighborPos = new Vector3(nx, ny, nz);
                             if (Vector3.Distance(neighborPos, position) <= radius)
                             {
-                            pointCloud[index] += 0.05f * pointCloud[index] * (radius - Vector3.Distance(neighborPos, position)) * (1f + (float)(random.NextDouble() * 0.2f - 0.1f));
+                                pointCloud[index] += 0.05f  * (radius - Vector3.Distance(neighborPos, position)) ;
+                            }
+                        if (nx == 0 || nx == size - 1 || ny == 0 || ny == size - 1 || nz == 0 || nz == size - 1)
+                        {
+                            pointCloud[index] = 0;
                         }
-                        }
+                    }
                     }
                 }
             }
         }
-    //create loop for number of worms 
-    //select two local maximas
-    //find direction vector between the two
-    //scale steps based on dist from two points
-    //add the dir vector to the perlin noise dir
-    //slowly increase strength as getting closer to the point
+    //get a perlin direction on the current position. modified version of 3D perlin noise
     static Vector3 GetPerlinDirection(Vector3 position, Vector3[] octaveOffsets)
     {
         float amplitude = 1f;
@@ -218,7 +225,8 @@ static public class PerlinWorms
     }
 
 
-
+    //Function to find local maxima 
+    //source https://www.youtube.com/watch?v=B8qarIAuE6M&t=32s
     public static List<Vector3Int> FindLocalMaxima(float[] pointCloud)
     {
         int size= GUIValues.instance.size;

@@ -6,8 +6,7 @@ using System.Collections.Concurrent;
 
 public static class PerlinNoiseMULTI
 {
-    private static List<Vector3> vertices = new List<Vector3>();
-    private static List<int> triangles = new List<int>();
+    
     static readonly int[] permutation = {
         151,160,137,91,90,15, 131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
         190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33, 88,237,149,56,87,174,20,
@@ -47,7 +46,8 @@ public static class PerlinNoiseMULTI
         float[] pointCloud = new float[size*size*size];
         float min_value = float.MaxValue;
         float max_value = float.MinValue;
-
+        //parallel for loop to work across multiple threads
+        // flattened for more optimal loop
         Parallel.For(0, size*size*size, index =>
         {
                
@@ -66,9 +66,12 @@ public static class PerlinNoiseMULTI
                 amplitude *= GUIValues.instance.p_persistance;
                 frequency *= GUIValues.instance.p_lacunarity;
             }
+            if (i == 0 || i == size - 1 || j == 0 || j == size - 1 || k == 0 || k == size - 1)
+            {
+                pointCloud[index] = 0;
+            }
 
-            
-                if (pointCloud[index] < min_value)
+            if (pointCloud[index] < min_value)
                     min_value = pointCloud[index];
                 if (pointCloud[index] > max_value)
                     max_value = pointCloud[index];
@@ -82,12 +85,17 @@ public static class PerlinNoiseMULTI
         st.Stop();
         Debug.Log("Rescaling of point cloud took " + st.ElapsedMilliseconds + " milliseconds");
         st.Restart();
+        if (GUIValues.instance.showWorms)
+            PerlinWormsGPU.GenWorms(pointCloud);
+        st.Stop();
+        Debug.Log("Perlin Worms Took" + st.ElapsedMilliseconds + " milliseconds");
+        st.Restart();
         MarchingCubesMULTI.GenerateMarchingCubes(pointCloud);
         st.Stop();
         Debug.Log("marching Cubes took " + st.ElapsedMilliseconds + " milliseconds");
         MarchingCubesMULTI.SetMesh();
     }
-
+    // parallel function to increase speed of rescaling
     static public void RescaleValues(float[] pointCloud, float min_value, float max_value)
     {
         int size = GUIValues.instance.size;
